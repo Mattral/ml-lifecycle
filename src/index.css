@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 234 89% 64%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 234 89% 64%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 234 47% 12%;
+    --sidebar-foreground: 220 20% 90%;
+    --sidebar-primary: 234 89% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 234 30% 20%;
+    --sidebar-accent-foreground: 220 20% 90%;
+    --sidebar-border: 234 30% 18%;
+    --sidebar-ring: 234 89% 64%;
+
+    --step-data: 199 89% 48%;
+    --step-explore: 152 76% 36%;
+    --step-clean: 38 92% 50%;
+    --step-engineer: 271 81% 56%;
+    --step-train: 0 84% 60%;
+    --step-evaluate: 172 66% 50%;
+    --step-interpret: 234 89% 64%;
+    --step-package: 25 95% 53%;
+    --step-deploy: 330 81% 60%;
+    --step-monitor: 199 89% 48%;
+    --step-cicd: 152 76% 36%;
+    --step-dashboard: 234 89% 64%;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 220 20% 95%;
+
+    --card: 222 47% 9%;
+    --card-foreground: 220 20% 95%;
+
+    --popover: 222 47% 9%;
+    --popover-foreground: 220 20% 95%;
+
+    --primary: 234 89% 64%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 30% 14%;
+    --secondary-foreground: 220 20% 95%;
+
+    --muted: 222 30% 14%;
+    --muted-foreground: 220 9% 55%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    --border: 222 30% 17%;
+    --input: 222 30% 17%;
+    --ring: 234 89% 64%;
+
+    --sidebar-background: 222 47% 4%;
+    --sidebar-foreground: 220 20% 85%;
+    --sidebar-primary: 234 89% 64%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 30% 12%;
+    --sidebar-accent-foreground: 220 20% 85%;
+    --sidebar-border: 222 30% 12%;
+    --sidebar-ring: 234 89% 64%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50 shadow-lg;
+  }
+
+  .step-indicator {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300;
+  }
+
+  .step-indicator-active {
+    @apply ring-4 ring-primary/20 scale-110;
+  }
+
+  .step-indicator-complete {
+    @apply bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))];
+  }
+
+  .journey-line {
+    @apply absolute left-5 top-10 w-0.5 h-full -translate-x-1/2;
+    background: linear-gradient(to bottom, hsl(var(--border)), transparent);
+  }
+
+  .learn-more-tooltip {
+    @apply text-xs bg-muted/80 backdrop-blur px-3 py-2 rounded-lg border border-border/50;
+  }
+
+  .module-header {
+    @apply mb-8;
+  }
+
+  .module-header h2 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  .module-header p {
+    @apply text-muted-foreground mt-1;
+  }
+
+  .stat-card {
+    @apply p-4 rounded-xl border border-border/50 bg-card;
+  }
+
+  .stat-card-value {
+    @apply text-2xl font-bold;
+  }
+
+  .stat-card-label {
+    @apply text-sm text-muted-foreground;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}

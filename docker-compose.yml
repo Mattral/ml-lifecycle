@@ -1,0 +1,44 @@
+# ============================================
+# ML Lifecycle Explorer - Docker Compose
+# For local development and testing
+# ============================================
+
+version: '3.8'
+
+services:
+  # Frontend Application
+  ml-explorer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "app=ml-lifecycle-explorer"
+      - "version=1.0.0"
+
+  # Development mode (optional)
+  ml-explorer-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev -- --host 0.0.0.0
+    profiles:
+      - dev
+    environment:
+      - NODE_ENV=development
