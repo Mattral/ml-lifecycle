@@ -22,9 +22,11 @@ spec:
         app: ml-lifecycle-explorer
         version: v1.0.0
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: ml-explorer
           image: ghcr.io/your-org/ml-lifecycle-explorer:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
               protocol: TCP
@@ -41,19 +43,44 @@ spec:
               port: 80
             initialDelaySeconds: 10
             periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /
               port: 80
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: 80
+            failureThreshold: 10
+            periodSeconds: 5
           securityContext:
             runAsNonRoot: true
             runAsUser: 101
+            runAsGroup: 101
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp/nginx
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
       volumes:
         - name: tmp
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
         - name: cache
-          emptyDir: {}
+          emptyDir:
+            sizeLimit: 64Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 8Mi
