@@ -281,7 +281,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
                         <span className="text-slate-600">
                           Final {taskType === 'classification' ? 'Accuracy' : 'R² Score'}:
                         </span>
-                        <span>{(state.model.finalAccuracy * 100).toFixed(1)}%</span>
+                        <span>{((state.model.finalAccuracy ?? 0) * 100).toFixed(1)}%</span>
                       </div>
                     </div>
                   </CardContent>
