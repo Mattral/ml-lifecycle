@@ -66,6 +66,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
     }
 
     const finalModel = {
+      name: selectedModel,
       type: selectedModel,
       taskType,
       epochs: totalEpochs,
@@ -73,7 +74,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
       finalAccuracy: trainingMetrics[trainingMetrics.length - 1]?.accuracy || 0.85,
       features: state.features,
       target: state.target,
-      timestamp: new Date()
+      trainedAt: new Date(),
     };
 
     setModel(finalModel);
