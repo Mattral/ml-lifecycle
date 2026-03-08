@@ -7,12 +7,13 @@ import {
   Upload, Search, Settings, Database, BarChart, CheckCircle,
   Eye, Zap, Package, Activity, GitBranch, LayoutDashboard,
   ChevronLeft, ChevronRight, HelpCircle, Sparkles, BookOpen,
-  FlaskConical, Warehouse, PanelLeftClose, PanelLeft
+  FlaskConical, Warehouse, PanelLeftClose, PanelLeft, Menu, X
 } from 'lucide-react';
 import { MLPipelineProvider } from './ml-modules/MLPipelineContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import ErrorBoundary from './ErrorBoundary';
 import OnboardingWalkthrough from './ml-modules/OnboardingWalkthrough';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy-loaded modules
 const DataIngestionModule = lazy(() => import('./ml-modules/DataIngestionModule'));
