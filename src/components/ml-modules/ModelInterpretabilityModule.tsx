@@ -37,7 +37,6 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
     [state.dataset, state.targetVariable],
   );
 
-  // Memoize with a stable seed so values don't change on re-render
   const featureImportance: FeatureImportanceEntry[] = useMemo(() => {
     const seededRandom = (seed: number) => {
       const x = Math.sin(seed) * 10000;
@@ -54,11 +53,12 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   }, [features]);
 
   const rowExplanation: RowExplanation[] = useMemo(() => {
+    if (!state.dataset) return [];
     const seededRandom = (seed: number) => {
       const x = Math.sin(seed) * 10000;
       return x - Math.floor(x);
     };
-    const row = state.dataset!.data[selectedRow];
+    const row = state.dataset.data[selectedRow];
     return features.slice(0, 5).map((feature, i) => ({
       feature,
       value: row[feature],
@@ -98,8 +98,8 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   if (!state.dataset || !state.targetVariable) {
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please complete model training first</p>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          Please load a dataset and train a model first
         </CardContent>
       </Card>
     );
