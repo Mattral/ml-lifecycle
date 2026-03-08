@@ -23,7 +23,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-slate-600">Please load a dataset first</p>
+          <p className="text-muted-foreground">Please load a dataset first</p>
         </CardContent>
       </Card>
     );
@@ -69,20 +69,24 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
       case 'log-transform':
         transformedValues = values.map(v => Math.log(v + 1));
         break;
-      case 'min-max-scale':
+      case 'min-max-scale': {
         const min = Math.min(...values);
         const max = Math.max(...values);
         transformedValues = values.map(v => (v - min) / (max - min));
         break;
-      case 'z-score':
+      }
+      case 'z-score': {
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
         const std = Math.sqrt(values.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / values.length);
         transformedValues = values.map(v => (v - mean) / std);
         break;
-      case 'binning':
-        const binSize = (Math.max(...values) - Math.min(...values)) / 5;
-        transformedValues = values.map(v => Math.floor((v - Math.min(...values)) / binSize));
+      }
+      case 'binning': {
+        const binMin = Math.min(...values);
+        const binSize = (Math.max(...values) - binMin) / 5;
+        transformedValues = values.map(v => Math.floor((v - binMin) / binSize));
         break;
+      }
     }
 
     const bins = 10;
@@ -90,7 +94,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
     const maxVal = Math.max(...transformedValues);
     const binWidth = (maxVal - minVal) / bins;
     
-    const histogram = Array(bins).fill(0);
+    const histogram = Array(bins).fill(0) as number[];
     transformedValues.forEach(value => {
       const binIndex = Math.min(Math.floor((value - minVal) / binWidth), bins - 1);
       histogram[binIndex]++;
@@ -103,30 +107,16 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
   };
 
   const applyTransformations = () => {
-    const transformationLog: any[] = [];
-
     if (selectedTarget) {
       setTarget(selectedTarget);
-      transformationLog.push({
-        type: 'target-selection',
-        column: selectedTarget,
-        details: `Selected ${selectedTarget} as target variable`
-      });
     }
 
     Object.entries(transformations).forEach(([column, transformation]) => {
       if (transformation !== 'none') {
-        transformationLog.push({
-          type: 'transformation',
-          column,
-          transformation,
-          details: `Applied ${transformation} to ${column}`
-        });
         addTransformation({ type: 'transformation', column, transformation, timestamp: new Date() });
       }
     });
 
-    console.log('Applied transformations:', transformationLog);
     setEngineeringComplete(true);
   };
 
@@ -182,17 +172,17 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                     <CardContent>
                       <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Variable:</span>
+                          <span className="text-muted-foreground">Variable:</span>
                           <span className="font-medium">{selectedTarget}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Task Type:</span>
+                          <span className="text-muted-foreground">Task Type:</span>
                           <Badge variant={detectTargetType(selectedTarget) === 'classification' ? 'default' : 'secondary'}>
                             {detectTargetType(selectedTarget)}
                           </Badge>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Unique Values:</span>
+                          <span className="text-muted-foreground">Unique Values:</span>
                           <span>{[...new Set(workingData.map(row => row[selectedTarget]))].length}</span>
                         </div>
                       </div>
@@ -205,7 +195,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
             <TabsContent value="transformations" className="space-y-4">
               <div className="flex items-center gap-2 mb-4">
                 <h3 className="text-lg font-semibold">Feature Transformations</h3>
-                <div className="flex items-center gap-1 text-sm text-amber-600">
+                <div className="flex items-center gap-1 text-sm text-warning">
                   <Star className="w-4 h-4" />
                   <span>Categorical features need encoding</span>
                 </div>
@@ -215,11 +205,11 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                   const columnType = getColumnType(column);
                   const requiresEncoding = needsEncoding(column);
                   return (
-                    <Card key={column} className={`p-3 ${requiresEncoding ? 'border-amber-200 bg-amber-50' : ''}`}>
+                    <Card key={column} className={`p-3 ${requiresEncoding ? 'border-warning/30 bg-warning/10' : ''}`}>
                       <div className="flex justify-between items-center mb-2">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{column}</span>
-                          {requiresEncoding && <Star className="w-4 h-4 text-amber-500" />}
+                          {requiresEncoding && <Star className="w-4 h-4 text-warning" />}
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant={columnType === 'numerical' ? 'default' : 'secondary'}>
@@ -255,7 +245,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                         </SelectContent>
                       </Select>
                       {requiresEncoding && (
-                        <p className="text-xs text-amber-600 mt-1">
+                        <p className="text-xs text-warning mt-1">
                           * This categorical feature needs encoding for ML algorithms
                         </p>
                       )}
@@ -268,7 +258,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
             <TabsContent value="preview" className="space-y-4">
               <div>
                 <h3 className="text-lg font-semibold mb-4">Transformation Preview</h3>
-                <p className="text-sm text-slate-600 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Select a numerical column to see histogram comparison before and after transformation
                 </p>
                 
@@ -300,7 +290,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                             <XAxis dataKey="range" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="count" fill="#3b82f6" />
+                            <Bar dataKey="count" fill="hsl(var(--primary))" />
                           </RechartsBarChart>
                         </ResponsiveContainer>
                       </CardContent>
@@ -324,14 +314,14 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                               <XAxis dataKey="range" />
                               <YAxis />
                               <Tooltip />
-                              <Bar dataKey="count" fill="#10b981" />
+                              <Bar dataKey="count" fill="hsl(var(--success))" />
                             </RechartsBarChart>
                           </ResponsiveContainer>
                         ) : (
-                          <div className="h-48 bg-gradient-to-r from-gray-100 to-gray-200 rounded flex items-center justify-center">
+                          <div className="h-48 bg-gradient-to-r from-muted to-muted/50 rounded flex items-center justify-center">
                             <div className="text-center">
-                              <BarChart3 className="w-8 h-8 text-gray-500 mx-auto mb-2" />
-                              <p className="text-sm text-slate-600">No transformation selected</p>
+                              <BarChart3 className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground">No transformation selected</p>
                             </div>
                           </div>
                         )}
@@ -345,7 +335,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm">Transformation Impact</CardTitle>
                     </CardHeader>
-                    <CardContent className="text-sm text-slate-600">
+                    <CardContent className="text-sm text-muted-foreground">
                       <p>
                         {transformations[previewColumn] === 'log-transform' && 
                           "Log transformation reduces right skewness and makes the distribution more normal."}
@@ -376,7 +366,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                       <h4 className="font-medium mb-3">Features (X)</h4>
                       <div className="space-y-2">
                         {columns.filter(col => col !== selectedTarget).map(col => (
-                          <div key={col} className="flex justify-between items-center p-2 bg-blue-50 rounded">
+                          <div key={col} className="flex justify-between items-center p-2 bg-primary/10 rounded">
                             <span className="text-sm">{col}</span>
                             <Badge variant="outline" className="text-xs">
                               {transformations[col] || 'none'}
@@ -389,17 +379,17 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                     <div>
                       <h4 className="font-medium mb-3">Target (y)</h4>
                       {selectedTarget ? (
-                        <div className="p-3 bg-green-50 rounded border border-green-200">
+                        <div className="p-3 bg-success/10 rounded border border-success/30">
                           <div className="flex justify-between items-center">
-                            <span className="font-medium text-green-800">{selectedTarget}</span>
+                            <span className="font-medium text-success">{selectedTarget}</span>
                             <Badge variant="outline">
                               {detectTargetType(selectedTarget)}
                             </Badge>
                           </div>
                         </div>
                       ) : (
-                        <div className="p-3 bg-gray-50 rounded border border-gray-200 text-center">
-                          <span className="text-gray-500">No target variable selected</span>
+                        <div className="p-3 bg-muted rounded border border-border text-center">
+                          <span className="text-muted-foreground">No target variable selected</span>
                         </div>
                       )}
                     </div>
@@ -418,12 +408,12 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
                   <CardContent>
                     <div className="space-y-2">
                       {state.transformations.map((transformation, i) => (
-                        <div key={i} className="flex items-center justify-between p-3 bg-blue-50 rounded border border-blue-200">
+                        <div key={i} className="flex items-center justify-between p-3 bg-primary/10 rounded border border-primary/20">
                           <div>
-                            <span className="font-medium text-blue-800">{transformation.transformation}</span>
-                            <p className="text-sm text-blue-600">Applied to {transformation.column}</p>
+                            <span className="font-medium text-primary">{transformation.transformation}</span>
+                            <p className="text-sm text-muted-foreground">Applied to {transformation.column}</p>
                           </div>
-                          <CheckCircle className="w-5 h-5 text-blue-500" />
+                          <CheckCircle className="w-5 h-5 text-primary" />
                         </div>
                       ))}
                     </div>
@@ -432,7 +422,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
               )}
 
               <div className="flex justify-between">
-                <div className="text-sm text-slate-600">
+                <div className="text-sm text-muted-foreground">
                   Features: {columns.filter(col => col !== selectedTarget).length} | 
                   Target: {selectedTarget || 'Not selected'}
                 </div>

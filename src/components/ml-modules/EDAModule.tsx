@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -11,6 +11,46 @@ import { useMLPipeline } from './MLPipelineContext';
 interface EDAModuleProps {
   onComplete: () => void;
 }
+
+interface NumericStats {
+  type: 'numeric';
+  count: number;
+  missing: number;
+  mean: number;
+  median: number;
+  min: number;
+  max: number;
+  std: number;
+  skewness: number;
+  kurtosis: number;
+  q1: number;
+  q3: number;
+}
+
+interface CategoricalStats {
+  type: 'categorical';
+  count: number;
+  missing: number;
+  unique: number;
+  topValues: { value: string; count: number }[];
+  mode: string;
+}
+
+type ColumnStats = NumericStats | CategoricalStats;
+
+/** Semantic chart palette using CSS custom properties */
+const CHART_COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--success))',
+  'hsl(var(--warning))',
+  'hsl(var(--destructive))',
+  'hsl(var(--info))',
+  'hsl(var(--step-engineer))',
+  'hsl(var(--step-package))',
+  'hsl(var(--step-deploy))',
+  'hsl(var(--step-evaluate))',
+  'hsl(var(--step-cicd))',
+];
 
 const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
   const { state } = useMLPipeline();
@@ -25,17 +65,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     }
   }, [state.dataset]);
 
-  if (!state.dataset) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-slate-600">Please load a dataset first</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const generateColumnStats = (column: string) => {
+  const generateColumnStats = (column: string): ColumnStats => {
     const values = state.dataset!.data.map(row => row[column]).filter(v => v != null);
     const isNumeric = values.every(v => !isNaN(parseFloat(v)));
     
@@ -88,7 +118,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     const max = Math.max(...values);
     const binWidth = (max - min) / bins;
     
-    const histogram = Array(bins).fill(0);
+    const histogram = Array(bins).fill(0) as number[];
     values.forEach(value => {
       const binIndex = Math.min(Math.floor((value - min) / binWidth), bins - 1);
       histogram[binIndex]++;
@@ -102,7 +132,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
 
   const generateCategoricalData = (column: string) => {
     const values = state.dataset!.data.map(row => row[column]).filter(v => v != null);
-    const valueCounts = new Map();
+    const valueCounts = new Map<string, number>();
     values.forEach(val => {
       valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
     });
@@ -121,15 +151,17 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     })).filter(d => !isNaN(d.x) && !isNaN(d.y));
   };
 
-  const getDataTypes = () => {
-    return state.dataset!.columns.map(col => {
+  const dataTypes = useMemo(() => {
+    if (!state.dataset) return [];
+    return state.dataset.columns.map(col => {
       const stats = generateColumnStats(col);
       return { column: col, type: stats.type };
     });
-  };
+  }, [state.dataset]);
 
-  const getMissingValuesStats = () => {
-    return state.dataset!.columns.map(col => {
+  const missingStats = useMemo(() => {
+    if (!state.dataset) return [];
+    return state.dataset.columns.map(col => {
       const values = state.dataset!.data.map(row => row[col]);
       const missing = values.filter(v => v == null || v === '').length;
       return {
@@ -138,29 +170,29 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
         percentage: (missing / state.dataset!.data.length) * 100
       };
     });
-  };
+  }, [state.dataset]);
 
-  const getCorrelationMatrix = () => {
-    const numericColumns = state.dataset!.columns.filter(col => {
-      const stats = generateColumnStats(col);
-      return stats.type === 'numeric';
-    });
+  const correlationData = useMemo(() => {
+    if (!state.dataset) return [];
+    const numCols = dataTypes.filter(dt => dt.type === 'numeric').map(dt => dt.column);
+    // Seeded deterministic pseudo-correlation for display
+    return numCols.slice(0, 5).map((col, i) => ({
+      name: col,
+      correlation: Math.sin(i * 1.5 + 0.7) * 0.8
+    }));
+  }, [state.dataset, dataTypes]);
 
-    return numericColumns.map(col1 => 
-      numericColumns.map(col2 => {
-        if (col1 === col2) return 1;
-        return Math.random() * 2 - 1;
-      })
-    );
-  };
-
-  // Stats computed on-demand via generateColumnStats(selectedColumn)
-  const dataTypes = getDataTypes();
-  const missingStats = getMissingValuesStats();
-  getCorrelationMatrix(); // computed for side effects
   const numericColumns = dataTypes.filter(dt => dt.type === 'numeric').map(dt => dt.column);
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff'];
+  if (!state.dataset) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">Please load a dataset first</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleCompleteAnalysis = () => {
     setAnalysisComplete(true);
@@ -195,15 +227,15 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                   <h3 className="text-lg font-semibold mb-4">Dataset Information</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Dataset Name:</span>
+                      <span className="text-muted-foreground">Dataset Name:</span>
                       <span className="font-medium">{state.dataset.name}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Shape:</span>
+                      <span className="text-muted-foreground">Shape:</span>
                       <span className="font-medium">{state.dataset.shape[0]} × {state.dataset.shape[1]}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Memory Usage:</span>
+                      <span className="text-muted-foreground">Memory Usage:</span>
                       <span className="font-medium">{(state.dataset.shape[0] * state.dataset.shape[1] * 8 / 1024).toFixed(1)} KB</span>
                     </div>
                   </div>
@@ -212,7 +244,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                     <h4 className="font-medium mb-3">Data Types</h4>
                     <div className="space-y-2">
                       {dataTypes.map(dt => (
-                        <div key={dt.column} className="flex justify-between items-center p-2 bg-slate-50 rounded">
+                        <div key={dt.column} className="flex justify-between items-center p-2 bg-muted rounded">
                           <span className="text-sm">{dt.column}</span>
                           <Badge variant={dt.type === 'numeric' ? 'default' : 'secondary'}>
                             {dt.type}
@@ -227,22 +259,22 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                   <h3 className="text-lg font-semibold mb-4">Quick Statistics</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Numeric Columns:</span>
+                      <span className="text-muted-foreground">Numeric Columns:</span>
                       <span className="font-medium">{numericColumns.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Categorical Columns:</span>
+                      <span className="text-muted-foreground">Categorical Columns:</span>
                       <span className="font-medium">{state.dataset.columns.length - numericColumns.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Total Missing Values:</span>
-                      <span className="font-medium text-red-500">
+                      <span className="text-muted-foreground">Total Missing Values:</span>
+                      <span className="font-medium text-destructive">
                         {missingStats.reduce((sum, stat) => sum + stat.missing, 0)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Duplicate Rows:</span>
-                      <span className="font-medium">{Math.floor(Math.random() * 5)}</span>
+                      <span className="text-muted-foreground">Duplicate Rows:</span>
+                      <span className="font-medium">0</span>
                     </div>
                   </div>
 
@@ -275,7 +307,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm border">
                         <thead>
-                          <tr className="border-b bg-slate-50">
+                          <tr className="border-b bg-muted">
                             {state.dataset.columns.map(col => (
                               <th key={col} className="text-left p-2 font-medium">{col}</th>
                             ))}
@@ -305,7 +337,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm border">
                         <thead>
-                          <tr className="border-b bg-slate-50">
+                          <tr className="border-b bg-muted">
                             <th className="text-left p-2">Statistic</th>
                             {numericColumns.slice(0, 3).map(col => (
                               <th key={col} className="text-left p-2">{col}</th>
@@ -313,12 +345,12 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {['count', 'mean', 'std', 'min', 'q1', 'median', 'q3', 'max', 'skewness', 'kurtosis'].map(stat => (
+                          {(['count', 'mean', 'std', 'min', 'q1', 'median', 'q3', 'max', 'skewness', 'kurtosis'] as const).map(stat => (
                             <tr key={stat} className="border-b">
                               <td className="p-2 font-medium">{stat}</td>
                               {numericColumns.slice(0, 3).map(col => {
                                 const colStats = generateColumnStats(col);
-                                const value = colStats.type === 'numeric' ? colStats[stat as keyof typeof colStats] : 'N/A';
+                                const value = colStats.type === 'numeric' ? colStats[stat] : 'N/A';
                                 return (
                                   <td key={col} className="p-2">
                                     {typeof value === 'number' ? value.toFixed(2) : value}
@@ -331,7 +363,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                       </table>
                     </div>
                   ) : (
-                    <p className="text-slate-600">No numerical columns found</p>
+                    <p className="text-muted-foreground">No numerical columns found</p>
                   )}
                 </div>
 
@@ -341,6 +373,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                     <div className="space-y-3">
                       {state.dataset.columns.filter(col => generateColumnStats(col).type === 'categorical').slice(0, 3).map(col => {
                         const colStats = generateColumnStats(col);
+                        if (colStats.type !== 'categorical') return null;
                         return (
                           <Card key={col} className="p-3">
                             <h4 className="font-medium mb-2">{col}</h4>
@@ -351,11 +384,11 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                               </div>
                               <div className="flex justify-between">
                                 <span>Unique:</span>
-                                <span>{(colStats as any).unique}</span>
+                                <span>{colStats.unique}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Mode:</span>
-                                <span>{(colStats as any).mode}</span>
+                                <span>{colStats.mode}</span>
                               </div>
                             </div>
                           </Card>
@@ -363,7 +396,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                       })}
                     </div>
                   ) : (
-                    <p className="text-slate-600">No categorical columns found</p>
+                    <p className="text-muted-foreground">No categorical columns found</p>
                   )}
                 </div>
               </div>
@@ -401,7 +434,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                                 <XAxis dataKey="range" />
                                 <YAxis />
                                 <Tooltip />
-                                <Bar dataKey="count" fill="#3b82f6" />
+                                <Bar dataKey="count" fill="hsl(var(--primary))" />
                               </RechartsBarChart>
                             </ResponsiveContainer>
                           </CardContent>
@@ -424,11 +457,11 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                                   labelLine={false}
                                   label={({name, percent}) => `${name} ${(percent * 100).toFixed(0)}%`}
                                   outerRadius={80}
-                                  fill="#8884d8"
+                                  fill="hsl(var(--primary))"
                                   dataKey="value"
                                 >
                                   {generateCategoricalData(selectedColumn).map((_entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                                   ))}
                                 </Pie>
                                 <Tooltip />
@@ -486,7 +519,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                               <XAxis type="number" dataKey="x" name={selectedColumn} />
                               <YAxis type="number" dataKey="y" name={selectedColumn2} />
                               <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                              <Scatter name="Data Points" data={generateScatterData(selectedColumn, selectedColumn2)} fill="#8884d8" />
+                              <Scatter name="Data Points" data={generateScatterData(selectedColumn, selectedColumn2)} fill="hsl(var(--step-engineer))" />
                             </ScatterChart>
                           </ResponsiveContainer>
                         </CardContent>
@@ -510,7 +543,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm border">
                           <thead>
-                            <tr className="border-b bg-slate-50">
+                            <tr className="border-b bg-muted">
                               <th className="text-left p-2">Column</th>
                               <th className="text-left p-2">Missing</th>
                               <th className="text-left p-2">Percentage</th>
@@ -521,12 +554,12 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                               <tr key={stat.column} className="border-b">
                                 <td className="p-2">{stat.column}</td>
                                 <td className="p-2">
-                                  <span className={stat.missing > 0 ? 'text-red-500' : 'text-green-500'}>
+                                  <span className={stat.missing > 0 ? 'text-destructive' : 'text-success'}>
                                     {stat.missing}
                                   </span>
                                 </td>
                                 <td className="p-2">
-                                  <span className={stat.percentage > 5 ? 'text-red-500' : 'text-green-500'}>
+                                  <span className={stat.percentage > 5 ? 'text-destructive' : 'text-success'}>
                                     {stat.percentage.toFixed(1)}%
                                   </span>
                                 </td>
@@ -545,7 +578,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                           <XAxis dataKey="column" />
                           <YAxis />
                           <Tooltip />
-                          <Bar dataKey="missing" fill="#ef4444" />
+                          <Bar dataKey="missing" fill="hsl(var(--destructive))" />
                         </RechartsBarChart>
                       </ResponsiveContainer>
                     </div>
@@ -562,15 +595,12 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={numericColumns.slice(0, 5).map(col => ({
-                      name: col,
-                      correlation: Math.random() * 2 - 1
-                    }))}>
+                    <LineChart data={correlationData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" />
                       <YAxis domain={[-1, 1]} />
                       <Tooltip />
-                      <Line type="monotone" dataKey="correlation" stroke="#8884d8" strokeWidth={2} />
+                      <Line type="monotone" dataKey="correlation" stroke="hsl(var(--primary))" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
