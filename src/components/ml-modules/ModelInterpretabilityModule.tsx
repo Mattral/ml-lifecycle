@@ -15,8 +15,8 @@ interface ModelInterpretabilityModuleProps {
 
 const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = ({ onComplete }) => {
   const { state } = useMLPipeline();
-  const [selectedFeatureForWhatIf, setSelectedFeature] = useState<string>('');
-  void selectedFeatureForWhatIf; // available for what-if feature selection
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedFeatureForWhatIf, _setSelectedFeature] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const [whatIfValues, setWhatIfValues] = useState<{[key: string]: string}>({});
   const [interpretabilityComplete, setInterpretabilityComplete] = useState(false);
