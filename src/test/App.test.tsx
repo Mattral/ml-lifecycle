@@ -29,7 +29,7 @@ describe('App integration', () => {
   it('shows 14 steps in progress indicator', async () => {
     renderApp();
     await waitFor(() => {
-      expect(screen.getByText(/Step 1 of 14/)).toBeInTheDocument();
+      expect(screen.getByText(/1 \/ 14/)).toBeInTheDocument();
     });
   });
 
