@@ -154,10 +154,10 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     );
   };
 
-  const stats = selectedColumn ? generateColumnStats(selectedColumn) : null;
+  const _stats = selectedColumn ? generateColumnStats(selectedColumn) : null;
   const dataTypes = getDataTypes();
   const missingStats = getMissingValuesStats();
-  const correlationMatrix = getCorrelationMatrix();
+  const _correlationMatrix = getCorrelationMatrix();
   const numericColumns = dataTypes.filter(dt => dt.type === 'numeric').map(dt => dt.column);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff'];
