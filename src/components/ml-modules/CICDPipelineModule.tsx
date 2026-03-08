@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, GitBranch, Play, Clock, AlertTriangle, Terminal, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMLPipeline } from './MLPipelineContext';
+// Pipeline context available if needed in future
 
 interface CICDPipelineModuleProps {
   onComplete: () => void;
