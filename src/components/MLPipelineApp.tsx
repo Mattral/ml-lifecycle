@@ -336,7 +336,7 @@ const MLPipelineApp = () => {
         {/* ─── Main Content ─── */}
         <main className="flex-1 overflow-y-auto" role="main">
           {/* Top Bar — Apple frosted glass */}
-          <header className="sticky top-0 z-10 top-bar-glass px-8 py-4">
+          <header className="sticky top-0 z-10 top-bar-glass px-6 py-3">
             <div className="flex items-center justify-between max-w-7xl mx-auto">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
