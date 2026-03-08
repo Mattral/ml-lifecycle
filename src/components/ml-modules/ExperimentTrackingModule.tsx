@@ -60,7 +60,7 @@ const DEFAULT_HYPERPARAMS: Record<string, Record<string, number | string>> = {
 };
 
 const ExperimentTrackingModule: React.FC<ExperimentTrackingModuleProps> = ({ onComplete }) => {
-  const { state } = useMLPipeline();
+  const { state: _pipelineState } = useMLPipeline();
   const [runs, setRuns] = useState<ExperimentRun[]>([]);
   const [runName, setRunName] = useState('experiment-1');
   const [selectedModel, setSelectedModel] = useState('Random Forest');

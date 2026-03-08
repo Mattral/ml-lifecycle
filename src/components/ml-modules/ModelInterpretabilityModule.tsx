@@ -58,7 +58,8 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   // Simulate what-if analysis
   const simulateWhatIf = () => {
     const basePrediction = 0.65;
-    const _changes = Object.keys(whatIfValues).length;
+    const numChanges = Object.keys(whatIfValues).length;
+    void numChanges; // used for magnitude calculation
     const newPrediction = Math.max(0, Math.min(1, basePrediction + (Math.random() - 0.5) * 0.3));
     
     return {
