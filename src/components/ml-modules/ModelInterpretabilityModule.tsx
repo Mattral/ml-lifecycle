@@ -95,6 +95,16 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
     onComplete();
   };
 
+  if (!state.dataset || !state.targetVariable) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">Please complete model training first</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
