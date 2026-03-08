@@ -119,10 +119,17 @@ const MLPipelineApp = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showStory, setShowStory] = useState<number | null>(null);
   const [highlightedPhase, setHighlightedPhase] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Auto-dismiss Insight banner when navigating between stages
   React.useEffect(() => {
     setShowStory(null);
+  }, [currentStep]);
+
+  // Close mobile menu on step change
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
   }, [currentStep]);
 
   // Listen for pipeline:navigate events from EmptyState CTAs
@@ -173,218 +180,265 @@ const MLPipelineApp = () => {
     return moduleMap[stepId] || null;
   }, [currentStep, handleStepComplete]);
 
+  // Shared sidebar content
+  const sidebarContent = (
+    <>
+      {/* Logo & Progress */}
+      <div className="p-4 pb-3 border-b border-sidebar-border/60">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
+                <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
+              </div>
+              {(!sidebarCollapsed || isMobile) && (
+                <div>
+                  <h1 className="text-[14px] font-semibold text-sidebar-foreground tracking-tight leading-none">ML Explorer</h1>
+                  <p className="text-[10px] text-sidebar-foreground/40 font-medium mt-0.5">Machine Learning Pipeline</p>
+                </div>
+              )}
+            </div>
+            {isMobile && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-sidebar-foreground/50 hover:text-sidebar-foreground w-8 h-8"
+                aria-label="Close menu"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          {(!sidebarCollapsed || isMobile) && (
+            <div>
+              <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/40 mb-1.5 font-medium">
+                <span>{completedSteps.length} of {ALL_STEPS.length} completed</span>
+                <span className="text-primary font-semibold">{Math.round(overallProgress)}%</span>
+              </div>
+              <Progress value={overallProgress} className="h-[3px]" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div className="flex-1 overflow-y-auto py-2 px-2 scrollbar-sidebar" role="list">
+        {PIPELINE_PHASES.map((phase) => {
+          const isPhaseHighlighted = highlightedPhase === phase.phase;
+          const phaseStepIndices = PHASE_INDICES.get(phase.phase) ?? [];
+
+          return (
+            <div
+              key={phase.phase}
+              className={`mb-1 transition-all duration-500 rounded-xl ${isPhaseHighlighted ? 'bg-primary/8' : ''}`}
+              role="group"
+              aria-label={`${phase.phase} phase`}
+            >
+              {(!sidebarCollapsed || isMobile) && (
+                <div className="px-3 pt-3 pb-1">
+                  <span className={`text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-300 ${
+                    isPhaseHighlighted ? 'text-primary' : 'text-sidebar-foreground/25'
+                  }`}>
+                    {phase.phase}
+                  </span>
+                </div>
+              )}
+
+              {sidebarCollapsed && !isMobile && (
+                <div className="flex justify-center py-1.5">
+                  <div className="w-5 h-px bg-sidebar-border/60 rounded-full" />
+                </div>
+              )}
+
+              {phase.steps.map((step, localIdx) => {
+                const stepIdx = phaseStepIndices[localIdx];
+                const isActive = currentStep === stepIdx;
+                const isComplete = completedSteps.includes(stepIdx);
+                const StepIcon = step.icon;
+                const showLabels = !sidebarCollapsed || isMobile;
+
+                return (
+                  <Tooltip key={step.id}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setCurrentStep(stepIdx)}
+                        role="listitem"
+                        aria-current={isActive ? 'step' : undefined}
+                        aria-label={`${step.label}${isComplete ? ' (completed)' : ''}`}
+                        className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left transition-all duration-200 group relative rounded-lg mx-auto ${
+                          !showLabels ? 'justify-center' : ''
+                        } ${
+                          isActive
+                            ? 'bg-sidebar-accent/80 text-sidebar-foreground'
+                            : 'text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/40'
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeIndicator"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r-full"
+                            transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                          />
+                        )}
+
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ease-out ${
+                          isComplete
+                            ? 'bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]'
+                            : isActive
+                              ? `${STEP_COLORS[stepIdx] ?? 'bg-primary'} text-white ring-2 ring-primary/20`
+                              : 'bg-sidebar-accent/60 text-sidebar-foreground/40'
+                        }`}>
+                          {isComplete ? (
+                            <CheckCircle className="w-3 h-3" aria-hidden="true" />
+                          ) : (
+                            <StepIcon className="w-3 h-3" aria-hidden="true" />
+                          )}
+                        </div>
+
+                        {showLabels && (
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[12px] font-medium truncate leading-tight">{step.label}</div>
+                            {isActive && (
+                              <motion.p
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="text-[10px] text-sidebar-foreground/35 mt-0.5 line-clamp-1 leading-snug"
+                              >
+                                {step.story.slice(0, 60)}…
+                              </motion.p>
+                            )}
+                          </div>
+                        )}
+
+                        {showLabels && isComplete && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    {!showLabels && (
+                      <TooltipContent side="right" className="font-medium">
+                        {step.label}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Collapse Toggle — desktop only */}
+      {!isMobile && (
+        <div className="shrink-0 p-2 border-t border-sidebar-border/40">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="w-full text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/40 h-7 text-[11px]"
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
+          </Button>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <MLPipelineProvider>
       <div className="flex h-screen overflow-hidden bg-background">
         <OnboardingWalkthrough onHighlightPhase={handleHighlightPhase} />
 
-        {/* ─── Sidebar ─── */}
-        <motion.aside
-          animate={{ width: sidebarCollapsed ? 68 : 280 }}
-          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
-          className="sidebar-refined text-sidebar-foreground flex flex-col border-r border-sidebar-border relative shrink-0"
-          role="navigation"
-          aria-label="Pipeline stages"
-        >
-          {/* Logo & Progress */}
-          <div className="p-4 pb-3 border-b border-sidebar-border/60">
-            <AnimatePresence mode="wait">
-              {!sidebarCollapsed ? (
+        {/* ─── Mobile Sidebar Overlay ─── */}
+        {isMobile && (
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <>
                 <motion.div
-                  key="expanded"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.15 }}
-                  className="space-y-3"
+                  transition={{ duration: 0.2 }}
+                  className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+                  onClick={() => setMobileMenuOpen(false)}
+                />
+                <motion.aside
+                  initial={{ x: '-100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '-100%' }}
+                  transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                  className="fixed inset-y-0 left-0 z-50 w-[280px] sidebar-refined text-sidebar-foreground flex flex-col border-r border-sidebar-border"
+                  role="navigation"
+                  aria-label="Pipeline stages"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
-                      <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h1 className="text-[14px] font-semibold text-sidebar-foreground tracking-tight leading-none">ML Explorer</h1>
-                      <p className="text-[10px] text-sidebar-foreground/40 font-medium mt-0.5">Machine Learning Pipeline</p>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/40 mb-1.5 font-medium">
-                      <span>{completedSteps.length} of {ALL_STEPS.length} completed</span>
-                      <span className="text-primary font-semibold">{Math.round(overallProgress)}%</span>
-                    </div>
-                    <Progress value={overallProgress} className="h-[3px]" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="collapsed"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex justify-center"
-                >
-                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
-                    <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                  {sidebarContent}
+                </motion.aside>
+              </>
+            )}
+          </AnimatePresence>
+        )}
 
-          {/* Steps */}
-          <div className="flex-1 overflow-y-auto py-2 px-2 scrollbar-sidebar" role="list">
-            {PIPELINE_PHASES.map((phase) => {
-              const isPhaseHighlighted = highlightedPhase === phase.phase;
-              const phaseStepIndices = PHASE_INDICES.get(phase.phase) ?? [];
-
-              return (
-                <div
-                  key={phase.phase}
-                  className={`mb-1 transition-all duration-500 rounded-xl ${isPhaseHighlighted ? 'bg-primary/8' : ''}`}
-                  role="group"
-                  aria-label={`${phase.phase} phase`}
-                >
-                  {!sidebarCollapsed && (
-                    <div className="px-3 pt-3 pb-1">
-                      <span className={`text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-300 ${
-                        isPhaseHighlighted ? 'text-primary' : 'text-sidebar-foreground/25'
-                      }`}>
-                        {phase.phase}
-                      </span>
-                    </div>
-                  )}
-
-                  {sidebarCollapsed && (
-                    <div className="flex justify-center py-1.5">
-                      <div className="w-5 h-px bg-sidebar-border/60 rounded-full" />
-                    </div>
-                  )}
-
-                  {phase.steps.map((step, localIdx) => {
-                    const stepIdx = phaseStepIndices[localIdx];
-                    const isActive = currentStep === stepIdx;
-                    const isComplete = completedSteps.includes(stepIdx);
-                    const StepIcon = step.icon;
-
-                    return (
-                      <Tooltip key={step.id}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => setCurrentStep(stepIdx)}
-                            role="listitem"
-                            aria-current={isActive ? 'step' : undefined}
-                            aria-label={`${step.label}${isComplete ? ' (completed)' : ''}`}
-                            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left transition-all duration-200 group relative rounded-lg mx-auto ${
-                              sidebarCollapsed ? 'justify-center' : ''
-                            } ${
-                              isActive
-                                ? 'bg-sidebar-accent/80 text-sidebar-foreground'
-                                : 'text-sidebar-foreground/50 hover:text-sidebar-foreground/80 hover:bg-sidebar-accent/40'
-                            }`}
-                          >
-                            {isActive && (
-                              <motion.div
-                                layoutId="activeIndicator"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r-full"
-                                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                              />
-                            )}
-
-                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ease-out ${
-                              isComplete
-                                ? 'bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]'
-                                : isActive
-                                  ? `${STEP_COLORS[stepIdx] ?? 'bg-primary'} text-white ring-2 ring-primary/20`
-                                  : 'bg-sidebar-accent/60 text-sidebar-foreground/40'
-                            }`}>
-                              {isComplete ? (
-                                <CheckCircle className="w-3 h-3" aria-hidden="true" />
-                              ) : (
-                                <StepIcon className="w-3 h-3" aria-hidden="true" />
-                              )}
-                            </div>
-
-                            {!sidebarCollapsed && (
-                              <div className="min-w-0 flex-1">
-                                <div className="text-[12px] font-medium truncate leading-tight">{step.label}</div>
-                                {isActive && (
-                                  <motion.p
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    className="text-[10px] text-sidebar-foreground/35 mt-0.5 line-clamp-1 leading-snug"
-                                  >
-                                    {step.story.slice(0, 60)}…
-                                  </motion.p>
-                                )}
-                              </div>
-                            )}
-
-                            {!sidebarCollapsed && isComplete && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
-                            )}
-                          </button>
-                        </TooltipTrigger>
-                        {sidebarCollapsed && (
-                          <TooltipContent side="right" className="font-medium">
-                            {step.label}
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Collapse Toggle — pinned bottom, no overlap */}
-          <div className="shrink-0 p-2 border-t border-sidebar-border/40">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/40 h-7 text-[11px]"
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {sidebarCollapsed ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
-            </Button>
-          </div>
-        </motion.aside>
+        {/* ─── Desktop Sidebar ─── */}
+        {!isMobile && (
+          <motion.aside
+            animate={{ width: sidebarCollapsed ? 68 : 280 }}
+            transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+            className="sidebar-refined text-sidebar-foreground flex flex-col border-r border-sidebar-border relative shrink-0"
+            role="navigation"
+            aria-label="Pipeline stages"
+          >
+            {sidebarContent}
+          </motion.aside>
+        )}
 
         {/* ─── Main Content ─── */}
         <main className="flex-1 overflow-y-auto" role="main">
           {/* Top Bar — Apple frosted glass */}
-          <header className="sticky top-0 z-10 top-bar-glass px-6 py-3">
+          <header className="sticky top-0 z-10 top-bar-glass px-3 sm:px-6 py-3">
             <div className="flex items-center justify-between max-w-7xl mx-auto">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+                {/* Mobile hamburger */}
+                {isMobile && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setMobileMenuOpen(true)}
+                    className="w-8 h-8 rounded-full shrink-0"
+                    aria-label="Open menu"
+                  >
+                    <Menu className="w-4 h-4" />
+                  </Button>
+                )}
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                   <div
-                    className={`w-2 h-2 rounded-full transition-colors duration-500 ${
+                    className={`w-2 h-2 rounded-full shrink-0 transition-colors duration-500 ${
                       completedSteps.includes(currentStep) ? 'bg-success' : 'bg-primary animate-pulse-soft'
                     }`}
                     aria-hidden="true"
                   />
-                  <h2 className="text-[17px] font-semibold tracking-tight">
+                  <h2 className="text-[15px] sm:text-[17px] font-semibold tracking-tight truncate">
                     {ALL_STEPS[currentStep]?.label}
                   </h2>
                 </div>
-                <Badge variant="secondary" className="text-[11px] font-medium px-2.5 py-0.5 rounded-full">
+                <Badge variant="secondary" className="text-[10px] sm:text-[11px] font-medium px-2 sm:px-2.5 py-0.5 rounded-full shrink-0">
                   {currentStep + 1} / {ALL_STEPS.length}
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowStory(showStory === currentStep ? null : currentStep)}
-                      className="text-muted-foreground hover:text-foreground h-8 px-3 rounded-full"
+                      className="text-muted-foreground hover:text-foreground h-8 px-2 sm:px-3 rounded-full"
                       aria-label="Show production insight"
                     >
-                      <BookOpen className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
-                      <span className="text-[12px] font-medium">Insight</span>
+                      <BookOpen className="w-3.5 h-3.5 sm:mr-1.5" aria-hidden="true" />
+                      <span className="text-[12px] font-medium hidden sm:inline">Insight</span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>See how this works in production</TooltipContent>
@@ -392,7 +446,7 @@ const MLPipelineApp = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full text-muted-foreground hover:text-foreground" aria-label="Help">
+                    <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full text-muted-foreground hover:text-foreground hidden sm:flex" aria-label="Help">
                       <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
                     </Button>
                   </TooltipTrigger>
@@ -401,7 +455,7 @@ const MLPipelineApp = () => {
                   </TooltipContent>
                 </Tooltip>
 
-                <div className="w-px h-4 bg-border/60 mx-1" />
+                <div className="w-px h-4 bg-border/60 mx-0.5 sm:mx-1 hidden sm:block" />
 
                 <div className="flex gap-0.5" role="group" aria-label="Step navigation">
                   <Button
@@ -440,14 +494,14 @@ const MLPipelineApp = () => {
                   role="complementary"
                   aria-label="Production insight"
                 >
-                  <div className="p-4 rounded-2xl bg-primary/[0.04] border border-primary/10">
-                    <div className="flex items-start gap-3">
+                  <div className="p-3 sm:p-4 rounded-2xl bg-primary/[0.04] border border-primary/10">
+                    <div className="flex items-start gap-2.5 sm:gap-3">
                       <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                         <Sparkles className="w-3.5 h-3.5 text-primary" aria-hidden="true" />
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[12px] font-semibold text-primary mb-0.5">Production Insight</p>
-                        <p className="text-[13px] text-muted-foreground leading-relaxed">{ALL_STEPS[currentStep]?.realWorld}</p>
+                        <p className="text-[12px] sm:text-[13px] text-muted-foreground leading-relaxed">{ALL_STEPS[currentStep]?.realWorld}</p>
                       </div>
                     </div>
                   </div>
@@ -457,7 +511,7 @@ const MLPipelineApp = () => {
           </header>
 
           {/* Module Content */}
-          <div className="p-8 max-w-7xl mx-auto">
+          <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
             <ErrorBoundary fallbackTitle="Module Error" onReset={() => setCurrentStep(0)}>
               <AnimatePresence mode="wait">
                 <motion.div
