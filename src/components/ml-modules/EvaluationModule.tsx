@@ -619,7 +619,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" domain={[0, 1]} />
                         <YAxis dataKey="feature" type="category" width={80} />
-                        <Tooltip formatter={(value, name) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
+                        <Tooltip formatter={(value) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
                         <Bar dataKey="importance">
                           {generateFeatureImportanceData().map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.impact === 'positive' ? '#10b981' : '#ef4444'} />

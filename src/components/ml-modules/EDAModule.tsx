@@ -427,7 +427,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                                   fill="#8884d8"
                                   dataKey="value"
                                 >
-                                  {generateCategoricalData(selectedColumn).map((entry, index) => (
+                                  {generateCategoricalData(selectedColumn).map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                   ))}
                                 </Pie>

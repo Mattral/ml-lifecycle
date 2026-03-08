@@ -199,7 +199,7 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {generateRowExplanation(selectedRow).map((contrib, i) => (
+                        {generateRowExplanation(selectedRow).map((contrib) => (
                           <div key={contrib.feature} className="flex items-center justify-between p-2 bg-slate-50 rounded">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{contrib.feature}</span>

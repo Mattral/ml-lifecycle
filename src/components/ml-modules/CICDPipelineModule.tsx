@@ -21,7 +21,7 @@ interface PipelineStage {
 const CICDPipelineModule: React.FC<CICDPipelineModuleProps> = ({ onComplete }) => {
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineComplete, setPipelineComplete] = useState(false);
-  const [currentStageIndex, setCurrentStageIndex] = useState(-1);
+  const [, setCurrentStageIndex] = useState(-1);
   const [stages, setStages] = useState<PipelineStage[]>([
     { name: 'Code Checkout', status: 'pending', logs: [] },
     { name: 'Lint & Type Check', status: 'pending', logs: [] },
