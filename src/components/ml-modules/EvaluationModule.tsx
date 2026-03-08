@@ -96,7 +96,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
 
   // Generate synthetic data for plots
   const generatePredictionAccuracyData = () => {
-    return Array.from({ length: 50 }, (_, i) => ({
+    return Array.from({ length: 50 }, () => ({
       actual: Math.random() * 100,
       predicted: Math.random() * 100 + (Math.random() - 0.5) * 20,
     }));
