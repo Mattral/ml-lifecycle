@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, GitBranch, Play, Clock, AlertTriangle, Terminal, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useMLPipeline } from './MLPipelineContext';
+// Pipeline context available if needed in future
 
 interface CICDPipelineModuleProps {
   onComplete: () => void;
@@ -19,10 +19,9 @@ interface PipelineStage {
 }
 
 const CICDPipelineModule: React.FC<CICDPipelineModuleProps> = ({ onComplete }) => {
-  const { state } = useMLPipeline();
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineComplete, setPipelineComplete] = useState(false);
-  const [currentStageIndex, setCurrentStageIndex] = useState(-1);
+  const [, setCurrentStageIndex] = useState(-1);
   const [stages, setStages] = useState<PipelineStage[]>([
     { name: 'Code Checkout', status: 'pending', logs: [] },
     { name: 'Lint & Type Check', status: 'pending', logs: [] },

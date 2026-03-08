@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle, BarChart, TrendingUp, Zap } from 'lucide-react';
+import { CheckCircle, BarChart, Zap } from 'lucide-react';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart as RechartsBarChart, Bar, Cell } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
 
@@ -33,7 +33,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
   }
 
   const generateEvaluationResults = () => {
-    const taskType = state.model.taskType;
+    const taskType = state.model?.taskType ?? 'classification';
     const testSize = Math.ceil((state.cleanedData || state.dataset!.data).length * 0.2);
 
     if (taskType === 'classification') {
@@ -84,7 +84,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
     }
 
     // Generate sample predictions
-    const samplePredictions = Array.from({ length: 10 }, (_, i) => ({
+    const samplePredictions = Array.from({ length: 10 }, () => ({
       actual: Math.random() > 0.5 ? 1 : 0,
       predicted: Math.random() > 0.4 ? 1 : 0,
       confidence: 0.6 + Math.random() * 0.4
@@ -96,7 +96,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
 
   // Generate synthetic data for plots
   const generatePredictionAccuracyData = () => {
-    return Array.from({ length: 50 }, (_, i) => ({
+    return Array.from({ length: 50 }, () => ({
       actual: Math.random() * 100,
       predicted: Math.random() * 100 + (Math.random() - 0.5) * 20,
     }));
@@ -112,7 +112,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
   };
 
   const generateResidualData = () => {
-    return Array.from({ length: 100 }, (_, i) => ({
+    return Array.from({ length: 100 }, () => ({
       fitted: Math.random() * 100,
       residual: (Math.random() - 0.5) * 20,
     }));
@@ -619,7 +619,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis type="number" domain={[0, 1]} />
                         <YAxis dataKey="feature" type="category" width={80} />
-                        <Tooltip formatter={(value, name) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
+                        <Tooltip formatter={(value) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
                         <Bar dataKey="importance">
                           {generateFeatureImportanceData().map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.impact === 'positive' ? '#10b981' : '#ef4444'} />

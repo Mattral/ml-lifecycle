@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -66,6 +66,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
     }
 
     const finalModel = {
+      name: selectedModel,
       type: selectedModel,
       taskType,
       epochs: totalEpochs,
@@ -73,7 +74,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
       finalAccuracy: trainingMetrics[trainingMetrics.length - 1]?.accuracy || 0.85,
       features: state.features,
       target: state.target,
-      timestamp: new Date()
+      trainedAt: new Date(),
     };
 
     setModel(finalModel);
@@ -274,13 +275,13 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Final Loss:</span>
-                        <span>{state.model.finalLoss.toFixed(4)}</span>
+                        <span>{(state.model.finalLoss ?? 0).toFixed(4)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">
                           Final {taskType === 'classification' ? 'Accuracy' : 'R² Score'}:
                         </span>
-                        <span>{(state.model.finalAccuracy * 100).toFixed(1)}%</span>
+                        <span>{((state.model.finalAccuracy ?? 0) * 100).toFixed(1)}%</span>
                       </div>
                     </div>
                   </CardContent>

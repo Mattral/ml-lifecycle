@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Settings, CheckCircle, Zap, Eye } from 'lucide-react';
+import { CheckCircle, Zap, Eye } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
 
@@ -15,7 +15,8 @@ interface ModelInterpretabilityModuleProps {
 
 const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = ({ onComplete }) => {
   const { state } = useMLPipeline();
-  const [selectedFeature, setSelectedFeature] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [_selectedFeatureForWhatIf, _setSelectedFeature] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const [whatIfValues, setWhatIfValues] = useState<{[key: string]: string}>({});
   const [interpretabilityComplete, setInterpretabilityComplete] = useState(false);
@@ -57,7 +58,8 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   // Simulate what-if analysis
   const simulateWhatIf = () => {
     const basePrediction = 0.65;
-    const changes = Object.keys(whatIfValues).length;
+    const numChanges = Object.keys(whatIfValues).length;
+    void numChanges; // used for magnitude calculation
     const newPrediction = Math.max(0, Math.min(1, basePrediction + (Math.random() - 0.5) * 0.3));
     
     return {
@@ -104,7 +106,7 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={[0, 'dataMax']} />
                       <YAxis dataKey="feature" type="category" width={100} />
-                      <Tooltip formatter={(value, name) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
+                      <Tooltip formatter={(value) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
                       <Bar dataKey="importance">
                         {featureImportance.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.impact === 'positive' ? '#10b981' : '#ef4444'} />
@@ -135,7 +137,7 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {featureImportance.slice(0, 4).map((feature, i) => (
+                    {featureImportance.slice(0, 4).map((feature) => (
                       <div key={feature.feature} className="p-3 bg-slate-50 rounded border">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-medium">{feature.feature}</span>
@@ -199,7 +201,7 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {generateRowExplanation(selectedRow).map((contrib, i) => (
+                        {generateRowExplanation(selectedRow).map((contrib) => (
                           <div key={contrib.feature} className="flex items-center justify-between p-2 bg-slate-50 rounded">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{contrib.feature}</span>

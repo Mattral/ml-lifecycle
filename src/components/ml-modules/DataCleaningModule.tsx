@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Settings, Trash, CheckCircle, AlertCircle, Undo } from 'lucide-react';
+import { Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMLPipeline } from './MLPipelineContext';
 
 interface DataCleaningModuleProps {

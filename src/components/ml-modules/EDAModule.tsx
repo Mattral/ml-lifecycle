@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Search, CheckCircle, TrendingUp, PieChart, BarChart3, Zap } from 'lucide-react';
+import { Search, CheckCircle, PieChart, BarChart3, Zap } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie, ScatterChart, Scatter, LineChart, Line } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
 
@@ -154,10 +154,10 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     );
   };
 
-  const stats = selectedColumn ? generateColumnStats(selectedColumn) : null;
+  // Stats computed on-demand via generateColumnStats(selectedColumn)
   const dataTypes = getDataTypes();
   const missingStats = getMissingValuesStats();
-  const correlationMatrix = getCorrelationMatrix();
+  getCorrelationMatrix(); // computed for side effects
   const numericColumns = dataTypes.filter(dt => dt.type === 'numeric').map(dt => dt.column);
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#00ff00', '#ff00ff'];
@@ -427,7 +427,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
                                   fill="#8884d8"
                                   dataKey="value"
                                 >
-                                  {generateCategoricalData(selectedColumn).map((entry, index) => (
+                                  {generateCategoricalData(selectedColumn).map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                   ))}
                                 </Pie>

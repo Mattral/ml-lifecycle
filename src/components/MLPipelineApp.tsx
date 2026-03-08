@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, Suspense, lazy, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,25 +9,41 @@ import {
   ChevronLeft, ChevronRight, HelpCircle, Sparkles, BookOpen,
   FlaskConical, Warehouse
 } from 'lucide-react';
-import DataIngestionModule from './ml-modules/DataIngestionModule';
-import EDAModule from './ml-modules/EDAModule';
-import DataCleaningModule from './ml-modules/DataCleaningModule';
-import FeatureEngineeringModule from './ml-modules/FeatureEngineeringModule';
-import ModelTrainingModule from './ml-modules/ModelTrainingModule';
-import EvaluationModule from './ml-modules/EvaluationModule';
-import ModelInterpretabilityModule from './ml-modules/ModelInterpretabilityModule';
-import ModelPackagingModule from './ml-modules/ModelPackagingModule';
-import DeploymentSimulationModule from './ml-modules/DeploymentSimulationModule';
-import MonitoringModule from './ml-modules/MonitoringModule';
-import CICDPipelineModule from './ml-modules/CICDPipelineModule';
-import PipelineDashboardModule from './ml-modules/PipelineDashboardModule';
-import ExperimentTrackingModule from './ml-modules/ExperimentTrackingModule';
-import FeatureStoreModule from './ml-modules/FeatureStoreModule';
-import OnboardingWalkthrough from './ml-modules/OnboardingWalkthrough';
 import { MLPipelineProvider } from './ml-modules/MLPipelineContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import ErrorBoundary from './ErrorBoundary';
+import OnboardingWalkthrough from './ml-modules/OnboardingWalkthrough';
 
-const PIPELINE_PHASES = [
+// Lazy-loaded modules for code splitting
+const DataIngestionModule = lazy(() => import('./ml-modules/DataIngestionModule'));
+const EDAModule = lazy(() => import('./ml-modules/EDAModule'));
+const DataCleaningModule = lazy(() => import('./ml-modules/DataCleaningModule'));
+const FeatureEngineeringModule = lazy(() => import('./ml-modules/FeatureEngineeringModule'));
+const ModelTrainingModule = lazy(() => import('./ml-modules/ModelTrainingModule'));
+const EvaluationModule = lazy(() => import('./ml-modules/EvaluationModule'));
+const ModelInterpretabilityModule = lazy(() => import('./ml-modules/ModelInterpretabilityModule'));
+const ModelPackagingModule = lazy(() => import('./ml-modules/ModelPackagingModule'));
+const DeploymentSimulationModule = lazy(() => import('./ml-modules/DeploymentSimulationModule'));
+const MonitoringModule = lazy(() => import('./ml-modules/MonitoringModule'));
+const CICDPipelineModule = lazy(() => import('./ml-modules/CICDPipelineModule'));
+const PipelineDashboardModule = lazy(() => import('./ml-modules/PipelineDashboardModule'));
+const ExperimentTrackingModule = lazy(() => import('./ml-modules/ExperimentTrackingModule'));
+const FeatureStoreModule = lazy(() => import('./ml-modules/FeatureStoreModule'));
+
+interface PipelineStep {
+  id: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  story: string;
+  realWorld: string;
+}
+
+interface PipelinePhase {
+  phase: string;
+  steps: PipelineStep[];
+}
+
+const PIPELINE_PHASES: PipelinePhase[] = [
   {
     phase: 'Data',
     steps: [
@@ -66,6 +82,38 @@ const PIPELINE_PHASES = [
 
 const ALL_STEPS = PIPELINE_PHASES.flatMap(p => p.steps);
 
+const STEP_COLORS = [
+  'bg-step-data', 'bg-step-explore', 'bg-step-clean',
+  'bg-step-engineer', 'bg-step-engineer', 'bg-step-train', 'bg-step-evaluate',
+  'bg-step-interpret', 'bg-step-package', 'bg-step-deploy',
+  'bg-step-monitor', 'bg-step-cicd', 'bg-step-cicd', 'bg-step-dashboard'
+];
+
+/** Loading skeleton for lazy modules */
+const ModuleLoader = () => (
+  <div className="space-y-4 animate-pulse" role="status" aria-label="Loading module">
+    <div className="h-8 bg-muted rounded w-1/3" />
+    <div className="h-4 bg-muted rounded w-2/3" />
+    <div className="h-64 bg-muted rounded" />
+  </div>
+);
+
+/** Compute flat step indices per phase */
+const computePhaseIndices = (): Map<string, number[]> => {
+  const map = new Map<string, number[]>();
+  let idx = 0;
+  for (const phase of PIPELINE_PHASES) {
+    const indices: number[] = [];
+    for (let i = 0; i < phase.steps.length; i++) {
+      indices.push(idx++);
+    }
+    map.set(phase.phase, indices);
+  }
+  return map;
+};
+
+const PHASE_INDICES = computePhaseIndices();
+
 const MLPipelineApp = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
@@ -75,30 +123,20 @@ const MLPipelineApp = () => {
 
   const overallProgress = (completedSteps.length / ALL_STEPS.length) * 100;
 
-  const handleStepComplete = (stepIndex: number) => {
-    if (!completedSteps.includes(stepIndex)) {
-      setCompletedSteps(prev => [...prev, stepIndex]);
-    }
+  const handleStepComplete = useCallback((stepIndex: number) => {
+    setCompletedSteps(prev =>
+      prev.includes(stepIndex) ? prev : [...prev, stepIndex]
+    );
     if (stepIndex < ALL_STEPS.length - 1) {
       setCurrentStep(stepIndex + 1);
     }
-  };
-
-  const getStepColor = (index: number) => {
-    const colorClasses = [
-      'bg-step-data', 'bg-step-explore', 'bg-step-clean',
-      'bg-step-engineer', 'bg-step-engineer', 'bg-step-train', 'bg-step-evaluate',
-      'bg-step-interpret', 'bg-step-package', 'bg-step-deploy',
-      'bg-step-monitor', 'bg-step-cicd', 'bg-step-cicd', 'bg-step-dashboard'
-    ];
-    return colorClasses[index] || 'bg-primary';
-  };
+  }, []);
 
   const handleHighlightPhase = useCallback((phase: string | null) => {
     setHighlightedPhase(phase);
   }, []);
 
-  const renderModule = () => {
+  const renderModule = useMemo(() => {
     const stepId = ALL_STEPS[currentStep]?.id;
     const moduleMap: Record<string, React.ReactNode> = {
       ingestion: <DataIngestionModule onComplete={() => handleStepComplete(0)} />,
@@ -117,9 +155,7 @@ const MLPipelineApp = () => {
       dashboard: <PipelineDashboardModule onComplete={() => handleStepComplete(13)} />,
     };
     return moduleMap[stepId] || null;
-  };
-
-  let globalStepIndex = 0;
+  }, [currentStep, handleStepComplete]);
 
   return (
     <MLPipelineProvider>
@@ -132,13 +168,15 @@ const MLPipelineApp = () => {
           animate={{ width: sidebarCollapsed ? 64 : 300 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="bg-sidebar text-sidebar-foreground flex flex-col border-r border-sidebar-border relative shrink-0"
+          role="navigation"
+          aria-label="Pipeline stages"
         >
           {/* Header */}
           <div className="p-4 border-b border-sidebar-border">
             {!sidebarCollapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
+                  <Sparkles className="w-5 h-5 text-primary" aria-hidden="true" />
                   <h1 className="text-lg font-bold text-sidebar-foreground">ML Explorer</h1>
                 </div>
                 <p className="text-xs text-sidebar-foreground/60">End-to-End Machine Learning Journey</p>
@@ -147,23 +185,30 @@ const MLPipelineApp = () => {
                     <span>Progress</span>
                     <span>{Math.round(overallProgress)}%</span>
                   </div>
-                  <Progress value={overallProgress} className="h-1.5" />
+                  <Progress value={overallProgress} className="h-1.5" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
                 </div>
               </motion.div>
             )}
             {sidebarCollapsed && (
               <div className="flex justify-center">
-                <Sparkles className="w-5 h-5 text-primary" />
+                <Sparkles className="w-5 h-5 text-primary" aria-hidden="true" />
               </div>
             )}
           </div>
 
           {/* Steps */}
-          <div className="flex-1 overflow-y-auto py-2">
+          <div className="flex-1 overflow-y-auto py-2" role="list">
             {PIPELINE_PHASES.map((phase) => {
               const isPhaseHighlighted = highlightedPhase === phase.phase;
+              const phaseStepIndices = PHASE_INDICES.get(phase.phase) ?? [];
+
               return (
-                <div key={phase.phase} className={`mb-1 transition-all duration-500 ${isPhaseHighlighted ? 'bg-primary/10 rounded-lg mx-1' : ''}`}>
+                <div
+                  key={phase.phase}
+                  className={`mb-1 transition-all duration-500 ${isPhaseHighlighted ? 'bg-primary/10 rounded-lg mx-1' : ''}`}
+                  role="group"
+                  aria-label={`${phase.phase} phase`}
+                >
                   {!sidebarCollapsed && (
                     <div className="px-4 py-2">
                       <span className={`text-[10px] font-semibold uppercase tracking-widest transition-colors duration-300 ${isPhaseHighlighted ? 'text-primary' : 'text-sidebar-foreground/40'}`}>
@@ -171,8 +216,8 @@ const MLPipelineApp = () => {
                       </span>
                     </div>
                   )}
-                  {phase.steps.map((step) => {
-                    const stepIdx = globalStepIndex++;
+                  {phase.steps.map((step, localIdx) => {
+                    const stepIdx = phaseStepIndices[localIdx];
                     const isActive = currentStep === stepIdx;
                     const isComplete = completedSteps.includes(stepIdx);
                     const StepIcon = step.icon;
@@ -181,6 +226,9 @@ const MLPipelineApp = () => {
                       <button
                         key={step.id}
                         onClick={() => setCurrentStep(stepIdx)}
+                        role="listitem"
+                        aria-current={isActive ? 'step' : undefined}
+                        aria-label={`${step.label}${isComplete ? ' (completed)' : ''}`}
                         className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 group relative ${
                           isActive
                             ? 'bg-sidebar-accent text-sidebar-foreground'
@@ -197,13 +245,13 @@ const MLPipelineApp = () => {
                           isComplete
                             ? 'step-indicator-complete'
                             : isActive
-                            ? `${getStepColor(stepIdx)} text-white step-indicator-active`
+                            ? `${STEP_COLORS[stepIdx] ?? 'bg-primary'} text-white step-indicator-active`
                             : 'bg-sidebar-accent text-sidebar-foreground/50'
                         }`}>
                           {isComplete ? (
-                            <CheckCircle className="w-4 h-4" />
+                            <CheckCircle className="w-4 h-4" aria-hidden="true" />
                           ) : (
-                            <StepIcon className="w-4 h-4" />
+                            <StepIcon className="w-4 h-4" aria-hidden="true" />
                           )}
                         </div>
                         {!sidebarCollapsed && (
@@ -231,7 +279,6 @@ const MLPipelineApp = () => {
                 </div>
               );
             })}
-            {(() => { globalStepIndex = 0; return null; })()}
           </div>
 
           {/* Collapse button */}
@@ -241,6 +288,7 @@ const MLPipelineApp = () => {
               size="sm"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className="w-full text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
             </Button>
@@ -248,13 +296,16 @@ const MLPipelineApp = () => {
         </motion.aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto" role="main">
           {/* Top Bar */}
           <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border px-6 py-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${completedSteps.includes(currentStep) ? 'bg-success' : 'bg-primary animate-pulse-soft'}`} />
+                  <div
+                    className={`w-2 h-2 rounded-full ${completedSteps.includes(currentStep) ? 'bg-success' : 'bg-primary animate-pulse-soft'}`}
+                    aria-hidden="true"
+                  />
                   <h2 className="text-lg font-semibold">
                     {ALL_STEPS[currentStep]?.label}
                   </h2>
@@ -271,8 +322,9 @@ const MLPipelineApp = () => {
                       variant="ghost"
                       size="sm"
                       onClick={() => setShowStory(showStory === currentStep ? null : currentStep)}
+                      aria-label="Show production insight"
                     >
-                      <BookOpen className="w-4 h-4 mr-1" />
+                      <BookOpen className="w-4 h-4 mr-1" aria-hidden="true" />
                       <span className="text-xs">Real World</span>
                     </Button>
                   </TooltipTrigger>
@@ -281,8 +333,8 @@ const MLPipelineApp = () => {
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="w-8 h-8">
-                      <HelpCircle className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" className="w-8 h-8" aria-label="Help">
+                      <HelpCircle className="w-4 h-4" aria-hidden="true" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-xs">
@@ -290,12 +342,13 @@ const MLPipelineApp = () => {
                   </TooltipContent>
                 </Tooltip>
 
-                <div className="flex gap-1">
+                <div className="flex gap-1" role="group" aria-label="Step navigation">
                   <Button
                     variant="outline"
                     size="sm"
                     disabled={currentStep === 0}
                     onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                    aria-label="Previous step"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
@@ -304,6 +357,7 @@ const MLPipelineApp = () => {
                     size="sm"
                     disabled={currentStep === ALL_STEPS.length - 1}
                     onClick={() => setCurrentStep(prev => Math.min(ALL_STEPS.length - 1, prev + 1))}
+                    aria-label="Next step"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
@@ -319,9 +373,11 @@ const MLPipelineApp = () => {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/10"
+                  role="complementary"
+                  aria-label="Production insight"
                 >
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                    <Sparkles className="w-4 h-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
                     <div>
                       <p className="text-xs font-medium text-primary mb-1">Production Insight</p>
                       <p className="text-xs text-muted-foreground">{ALL_STEPS[currentStep]?.realWorld}</p>
@@ -334,17 +390,21 @@ const MLPipelineApp = () => {
 
           {/* Module Content */}
           <div className="p-6 max-w-7xl mx-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.2 }}
-              >
-                {renderModule()}
-              </motion.div>
-            </AnimatePresence>
+            <ErrorBoundary fallbackTitle="Module Error" onReset={() => setCurrentStep(0)}>
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Suspense fallback={<ModuleLoader />}>
+                    {renderModule}
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

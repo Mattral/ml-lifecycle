@@ -36,7 +36,7 @@ const SAMPLE_FEATURES: Feature[] = [
 ];
 
 const FeatureStoreModule: React.FC<FeatureStoreModuleProps> = ({ onComplete }) => {
-  const { state } = useMLPipeline();
+  const { state: _pipelineState } = useMLPipeline();
   const [features, setFeatures] = useState<Feature[]>(SAMPLE_FEATURES);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
