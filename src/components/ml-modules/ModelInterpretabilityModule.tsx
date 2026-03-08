@@ -15,7 +15,7 @@ interface ModelInterpretabilityModuleProps {
 
 const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = ({ onComplete }) => {
   const { state } = useMLPipeline();
-  const [selectedFeature, setSelectedFeature] = useState<string>('');
+  const [, setSelectedFeature] = useState<string>('');
   const [selectedRow, setSelectedRow] = useState<number>(0);
   const [whatIfValues, setWhatIfValues] = useState<{[key: string]: string}>({});
   const [interpretabilityComplete, setInterpretabilityComplete] = useState(false);
