@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 
 interface DataPoint {
-  [key: string]: string | number | boolean | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 interface Dataset {
@@ -21,7 +22,10 @@ interface CleaningLog {
 interface TransformationLog {
   type: string;
   column?: string;
-  details: string;
+  details?: string;
+  transformation?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 interface TrainedModel {
@@ -29,6 +33,14 @@ interface TrainedModel {
   type: string;
   accuracy?: number;
   trainedAt: Date;
+  taskType?: string;
+  epochs?: number;
+  finalLoss?: number;
+  finalAccuracy?: number;
+  features?: string[];
+  target?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 interface PredictionResult {
