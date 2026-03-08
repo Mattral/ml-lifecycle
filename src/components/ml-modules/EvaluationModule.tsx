@@ -84,7 +84,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
     }
 
     // Generate sample predictions
-    const samplePredictions = Array.from({ length: 10 }, (_, i) => ({
+    const samplePredictions = Array.from({ length: 10 }, () => ({
       actual: Math.random() > 0.5 ? 1 : 0,
       predicted: Math.random() > 0.4 ? 1 : 0,
       confidence: 0.6 + Math.random() * 0.4
