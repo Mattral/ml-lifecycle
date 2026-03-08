@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,63 +13,91 @@ interface ModelInterpretabilityModuleProps {
   onComplete: () => void;
 }
 
+interface FeatureImportanceEntry {
+  feature: string;
+  importance: number;
+  impact: 'positive' | 'negative';
+}
+
+interface RowExplanation {
+  feature: string;
+  value: unknown;
+  contribution: number;
+  direction: string;
+}
+
 const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = ({ onComplete }) => {
   const { state } = useMLPipeline();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_selectedFeatureForWhatIf, _setSelectedFeature] = useState<string>('');
-  const [selectedRow, setSelectedRow] = useState<number>(0);
-  const [whatIfValues, setWhatIfValues] = useState<{[key: string]: string}>({});
+  const [selectedRow, setSelectedRow] = useState(0);
+  const [whatIfValues, setWhatIfValues] = useState<Record<string, string>>({});
   const [interpretabilityComplete, setInterpretabilityComplete] = useState(false);
 
   if (!state.dataset || !state.targetVariable) {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-slate-600">Please complete model training first</p>
+          <p className="text-muted-foreground">Please complete model training first</p>
         </CardContent>
       </Card>
     );
   }
 
-  const features = state.dataset.columns.filter(col => col !== state.targetVariable);
-  
-  // Simulate SHAP-like feature importance
-  const generateFeatureImportance = () => {
-    return features.map(feature => ({
-      feature,
-      importance: Math.random() * 0.5 + 0.1,
-      impact: Math.random() > 0.5 ? 'positive' : 'negative'
-    })).sort((a, b) => b.importance - a.importance).slice(0, 10);
-  };
+  const features = state.dataset.columns.filter((col) => col !== state.targetVariable);
 
-  const featureImportance = generateFeatureImportance();
+  // Memoize with a stable seed so values don't change on re-render
+  const featureImportance: FeatureImportanceEntry[] = useMemo(() => {
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    return features
+      .map((feature, i) => ({
+        feature,
+        importance: seededRandom(i + 1) * 0.5 + 0.1,
+        impact: (seededRandom(i + 100) > 0.5 ? 'positive' : 'negative') as 'positive' | 'negative',
+      }))
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, 10);
+  }, [features]);
 
-  // Simulate individual prediction explanation
-  const generateRowExplanation = (rowIndex: number) => {
-    const row = state.dataset!.data[rowIndex];
-    return features.slice(0, 5).map(feature => ({
+  const rowExplanation: RowExplanation[] = useMemo(() => {
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    const row = state.dataset!.data[selectedRow];
+    return features.slice(0, 5).map((feature, i) => ({
       feature,
       value: row[feature],
-      contribution: (Math.random() - 0.5) * 0.4,
-      direction: Math.random() > 0.5 ? '↑' : '↓'
+      contribution: (seededRandom(selectedRow * 100 + i) - 0.5) * 0.4,
+      direction: seededRandom(selectedRow * 100 + i + 50) > 0.5 ? '↑' : '↓',
     }));
-  };
+  }, [features, selectedRow, state.dataset]);
 
-  // Simulate what-if analysis
-  const simulateWhatIf = () => {
+  const whatIfResult = useMemo(() => {
     const basePrediction = 0.65;
-    const numChanges = Object.keys(whatIfValues).length;
-    void numChanges; // used for magnitude calculation
-    const newPrediction = Math.max(0, Math.min(1, basePrediction + (Math.random() - 0.5) * 0.3));
-    
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    const changeCount = Object.keys(whatIfValues).length;
+    const newPrediction = Math.max(0, Math.min(1, basePrediction + (seededRandom(changeCount + 42) - 0.5) * 0.3));
     return {
       original: basePrediction,
       new: newPrediction,
-      change: newPrediction - basePrediction
+      change: newPrediction - basePrediction,
     };
-  };
+  }, [whatIfValues]);
 
-  const handleCompleteInterpretability = () => {
+  const finalPrediction = useMemo(() => {
+    const seededRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+    return (seededRandom(selectedRow + 7) * 0.3 + 0.4).toFixed(3);
+  }, [selectedRow]);
+
+  const handleComplete = () => {
     setInterpretabilityComplete(true);
     onComplete();
   };
@@ -79,12 +107,10 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Eye className="w-5 h-5" />
+            <Eye className="w-5 h-5" aria-hidden="true" />
             Model Interpretability
           </CardTitle>
-          <CardDescription>
-            Understand how your model makes predictions using SHAP-like explanations
-          </CardDescription>
+          <CardDescription>Understand how your model makes predictions using SHAP-like explanations</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="importance" className="w-full">
@@ -106,24 +132,24 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={[0, 'dataMax']} />
                       <YAxis dataKey="feature" type="category" width={100} />
-                      <Tooltip formatter={(value) => [`${(value as number * 100).toFixed(1)}%`, 'Importance']} />
+                      <Tooltip formatter={(value) => [`${(Number(value) * 100).toFixed(1)}%`, 'Importance']} />
                       <Bar dataKey="importance">
                         {featureImportance.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.impact === 'positive' ? '#10b981' : '#ef4444'} />
+                          <Cell key={`cell-${index}`} fill={entry.impact === 'positive' ? 'hsl(var(--success))' : 'hsl(var(--destructive))'} />
                         ))}
                       </Bar>
                     </RechartsBarChart>
                   </ResponsiveContainer>
-                  
+
                   <div className="mt-4 space-y-2">
                     <h4 className="font-medium">Feature Impact Legend</h4>
                     <div className="flex gap-4">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-green-500 rounded"></div>
+                        <div className="w-3 h-3 bg-success rounded" />
                         <span className="text-sm">Positive impact on target</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 bg-red-500 rounded"></div>
+                        <div className="w-3 h-3 bg-destructive rounded" />
                         <span className="text-sm">Negative impact on target</span>
                       </div>
                     </div>
@@ -138,18 +164,17 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-4">
                     {featureImportance.slice(0, 4).map((feature) => (
-                      <div key={feature.feature} className="p-3 bg-slate-50 rounded border">
+                      <div key={feature.feature} className="p-3 bg-muted rounded border border-border">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-medium">{feature.feature}</span>
                           <Badge variant={feature.impact === 'positive' ? 'default' : 'destructive'}>
                             {feature.impact}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-600">
-                          {feature.impact === 'positive' 
+                        <p className="text-sm text-muted-foreground">
+                          {feature.impact === 'positive'
                             ? `Higher values increase prediction probability by ${(feature.importance * 100).toFixed(1)}%`
-                            : `Higher values decrease prediction probability by ${(feature.importance * 100).toFixed(1)}%`
-                          }
+                            : `Higher values decrease prediction probability by ${(feature.importance * 100).toFixed(1)}%`}
                         </p>
                       </div>
                     ))}
@@ -181,10 +206,10 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {features.slice(0, 5).map(feature => (
+                        {features.slice(0, 5).map((feature) => (
                           <div key={feature} className="flex justify-between">
-                            <span className="text-sm text-slate-600">{feature}:</span>
-                            <span className="text-sm font-medium">{state.dataset!.data[selectedRow][feature]}</span>
+                            <span className="text-sm text-muted-foreground">{feature}:</span>
+                            <span className="text-sm font-medium">{String(state.dataset!.data[selectedRow][feature])}</span>
                           </div>
                         ))}
                       </div>
@@ -201,27 +226,23 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {generateRowExplanation(selectedRow).map((contrib) => (
-                          <div key={contrib.feature} className="flex items-center justify-between p-2 bg-slate-50 rounded">
+                        {rowExplanation.map((contrib) => (
+                          <div key={contrib.feature} className="flex items-center justify-between p-2 bg-muted rounded">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{contrib.feature}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {contrib.value}
-                              </Badge>
+                              <Badge variant="outline" className="text-xs">{String(contrib.value)}</Badge>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm ${contrib.contribution > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {contrib.direction} {Math.abs(contrib.contribution * 100).toFixed(1)}%
-                              </span>
-                            </div>
+                            <span className={`text-sm ${contrib.contribution > 0 ? 'text-success' : 'text-destructive'}`}>
+                              {contrib.direction} {Math.abs(contrib.contribution * 100).toFixed(1)}%
+                            </span>
                           </div>
                         ))}
                       </div>
-                      
-                      <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+
+                      <div className="mt-4 p-3 bg-primary/10 rounded border border-primary/20">
                         <div className="flex justify-between items-center">
-                          <span className="font-medium text-blue-800">Final Prediction:</span>
-                          <span className="font-bold text-blue-800">{(Math.random() * 0.3 + 0.4).toFixed(3)}</span>
+                          <span className="font-medium text-primary">Final Prediction:</span>
+                          <span className="font-bold text-primary">{finalPrediction}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -234,28 +255,25 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Zap className="w-4 h-4" />
+                    <Zap className="w-4 h-4" aria-hidden="true" />
                     What-If Analysis
                   </CardTitle>
-                  <CardDescription>
-                    Explore how changing feature values affects predictions
-                  </CardDescription>
+                  <CardDescription>Explore how changing feature values affects predictions</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <h4 className="font-medium mb-3">Modify Feature Values</h4>
                       <div className="space-y-3">
-                        {features.slice(0, 5).map(feature => (
+                        {features.slice(0, 5).map((feature) => (
                           <div key={feature} className="space-y-1">
                             <label className="text-sm font-medium">{feature}</label>
                             <Input
-                              placeholder={`Current: ${state.dataset!.data[selectedRow][feature]}`}
-                              value={whatIfValues[feature] || ''}
-                              onChange={(e) => setWhatIfValues(prev => ({
-                                ...prev,
-                                [feature]: e.target.value
-                              }))}
+                              placeholder={`Current: ${String(state.dataset!.data[selectedRow][feature])}`}
+                              value={whatIfValues[feature] ?? ''}
+                              onChange={(e) =>
+                                setWhatIfValues((prev) => ({ ...prev, [feature]: e.target.value }))
+                              }
                             />
                           </div>
                         ))}
@@ -268,17 +286,17 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                         <CardContent className="p-4">
                           <div className="space-y-3">
                             <div className="flex justify-between">
-                              <span className="text-slate-600">Original Prediction:</span>
-                              <span className="font-medium">{simulateWhatIf().original.toFixed(3)}</span>
+                              <span className="text-muted-foreground">Original Prediction:</span>
+                              <span className="font-medium">{whatIfResult.original.toFixed(3)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-600">New Prediction:</span>
-                              <span className="font-medium">{simulateWhatIf().new.toFixed(3)}</span>
+                              <span className="text-muted-foreground">New Prediction:</span>
+                              <span className="font-medium">{whatIfResult.new.toFixed(3)}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-600">Change:</span>
-                              <span className={`font-medium ${simulateWhatIf().change > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {simulateWhatIf().change > 0 ? '+' : ''}{(simulateWhatIf().change * 100).toFixed(1)}%
+                              <span className="text-muted-foreground">Change:</span>
+                              <span className={`font-medium ${whatIfResult.change > 0 ? 'text-success' : 'text-destructive'}`}>
+                                {whatIfResult.change > 0 ? '+' : ''}{(whatIfResult.change * 100).toFixed(1)}%
                               </span>
                             </div>
                           </div>
@@ -287,8 +305,8 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
 
                       <div className="mt-4">
                         <h5 className="font-medium mb-2">Key Insights:</h5>
-                        <div className="space-y-2 text-sm text-slate-600">
-                          <p>• Changing {Object.keys(whatIfValues)[0] || features[0]} has the highest impact</p>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                          <p>• Changing {Object.keys(whatIfValues)[0] ?? features[0]} has the highest impact</p>
                           <p>• Model is most sensitive to {featureImportance[0].feature}</p>
                           <p>• Consider feature interactions for better predictions</p>
                         </div>
@@ -303,10 +321,10 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={handleCompleteInterpretability} disabled={interpretabilityComplete}>
+        <Button onClick={handleComplete} disabled={interpretabilityComplete}>
           {interpretabilityComplete ? (
             <>
-              <CheckCircle className="w-4 h-4 mr-2" />
+              <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
               Interpretability Complete
             </>
           ) : (
