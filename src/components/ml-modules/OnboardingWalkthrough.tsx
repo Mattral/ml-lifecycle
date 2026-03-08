@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { X, ChevronRight, ChevronLeft, Sparkles, Rocket } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sparkles, Rocket } from 'lucide-react';
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/lib/storage';
 
 interface OnboardingStep {
