@@ -104,10 +104,10 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
     setIsTraining(false);
   };
 
-  const stopTraining = useCallback(() => {
+  const stopTraining = () => {
     abortRef.current = true;
     setIsTraining(false);
-  }, []);
+  };
 
   return (
     <div className="space-y-6">
