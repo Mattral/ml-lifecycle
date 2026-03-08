@@ -135,7 +135,7 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-4">
-                    {featureImportance.slice(0, 4).map((feature, i) => (
+                    {featureImportance.slice(0, 4).map((feature) => (
                       <div key={feature.feature} className="p-3 bg-slate-50 rounded border">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-medium">{feature.feature}</span>
