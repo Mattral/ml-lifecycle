@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMLPipeline, type CleaningLog } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface DataCleaningModuleProps {
   onComplete: () => void;

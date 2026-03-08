@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, Zap, Eye } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface ModelInterpretabilityModuleProps {
   onComplete: () => void;
