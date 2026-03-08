@@ -19,7 +19,6 @@ interface PipelineStage {
 }
 
 const CICDPipelineModule: React.FC<CICDPipelineModuleProps> = ({ onComplete }) => {
-  const { state } = useMLPipeline();
   const [pipelineRunning, setPipelineRunning] = useState(false);
   const [pipelineComplete, setPipelineComplete] = useState(false);
   const [currentStageIndex, setCurrentStageIndex] = useState(-1);
