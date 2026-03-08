@@ -47,11 +47,13 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
 
   if (!state.dataset || !state.target) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please complete feature engineering first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={BarChart}
+        title="Not Ready for Training"
+        description="Complete feature engineering first — select a target variable and configure transformations so the model knows what to learn."
+        actionLabel="Go to Feature Engineering"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 4 }))}
+      />
     );
   }
 

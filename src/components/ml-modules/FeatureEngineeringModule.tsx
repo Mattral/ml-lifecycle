@@ -21,11 +21,13 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
 
   if (!state.dataset) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please load a dataset first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Database}
+        title="No Dataset Loaded"
+        description="Load and clean your dataset first. Then you'll select a target variable and engineer features to improve model performance."
+        actionLabel="Go to Data Ingestion"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 0 }))}
+      />
     );
   }
 
