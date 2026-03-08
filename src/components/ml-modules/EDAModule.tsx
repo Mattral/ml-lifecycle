@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart, Search, CheckCircle, TrendingUp, PieChart, BarChart3, Zap } from 'lucide-react';
+import { Search, CheckCircle, PieChart, BarChart3, Zap } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie, ScatterChart, Scatter, LineChart, Line } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
 
