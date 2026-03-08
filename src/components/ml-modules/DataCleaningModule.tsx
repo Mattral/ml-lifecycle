@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Settings, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMLPipeline, type CleaningLog } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface DataCleaningModuleProps {
   onComplete: () => void;
@@ -151,11 +152,13 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
 
   if (!state.dataset) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please load a dataset first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Settings}
+        title="No Dataset Loaded"
+        description="Load a dataset first to identify missing values, outliers, and inconsistencies that need cleaning before feature engineering."
+        actionLabel="Go to Data Ingestion"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 0 }))}
+      />
     );
   }
 

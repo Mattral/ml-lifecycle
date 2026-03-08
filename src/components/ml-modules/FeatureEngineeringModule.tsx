@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Settings, CheckCircle, Plus, BarChart3, Star } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface FeatureEngineeringModuleProps {
   onComplete: () => void;
@@ -21,11 +22,13 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
 
   if (!state.dataset) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please load a dataset first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Database}
+        title="No Dataset Loaded"
+        description="Load and clean your dataset first. Then you'll select a target variable and engineer features to improve model performance."
+        actionLabel="Go to Data Ingestion"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 0 }))}
+      />
     );
   }
 

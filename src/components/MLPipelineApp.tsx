@@ -119,6 +119,23 @@ const MLPipelineApp = () => {
   const [showStory, setShowStory] = useState<number | null>(null);
   const [highlightedPhase, setHighlightedPhase] = useState<string | null>(null);
 
+  // Auto-dismiss Insight banner when navigating between stages
+  React.useEffect(() => {
+    setShowStory(null);
+  }, [currentStep]);
+
+  // Listen for pipeline:navigate events from EmptyState CTAs
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const step = (e as CustomEvent).detail;
+      if (typeof step === 'number' && step >= 0 && step < ALL_STEPS.length) {
+        setCurrentStep(step);
+      }
+    };
+    window.addEventListener('pipeline:navigate', handler);
+    return () => window.removeEventListener('pipeline:navigate', handler);
+  }, []);
+
   const overallProgress = (completedSteps.length / ALL_STEPS.length) * 100;
 
   const handleStepComplete = useCallback((stepIndex: number) => {

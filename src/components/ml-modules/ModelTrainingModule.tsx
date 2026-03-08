@@ -1,10 +1,11 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { BarChart, CheckCircle, Play, Square } from 'lucide-react';
 import { useMLPipeline } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface ModelTrainingModuleProps {
   onComplete: () => void;
@@ -47,11 +48,13 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
 
   if (!state.dataset || !state.target) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please complete feature engineering first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={BarChart}
+        title="Not Ready for Training"
+        description="Complete feature engineering first — select a target variable and configure transformations so the model knows what to learn."
+        actionLabel="Go to Feature Engineering"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 4 }))}
+      />
     );
   }
 
@@ -101,10 +104,10 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
     setIsTraining(false);
   };
 
-  const stopTraining = useCallback(() => {
+  const stopTraining = () => {
     abortRef.current = true;
     setIsTraining(false);
-  }, []);
+  };
 
   return (
     <div className="space-y-6">

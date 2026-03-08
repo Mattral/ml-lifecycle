@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, CheckCircle, PieChart, BarChart3, Zap } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell, Pie, ScatterChart, Scatter, LineChart, Line } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface EDAModuleProps {
   onComplete: () => void;
@@ -186,11 +187,13 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
 
   if (!state.dataset) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please load a dataset first</p>
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Search}
+        title="No Dataset Loaded"
+        description="Start by loading a dataset in the Data Ingestion step. Once loaded, you'll be able to explore distributions, correlations, and statistical summaries."
+        actionLabel="Go to Data Ingestion"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 0 }))}
+      />
     );
   }
 

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, Zap, Eye } from 'lucide-react';
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useMLPipeline } from './MLPipelineContext';
+import EmptyState from './EmptyState';
 
 interface ModelInterpretabilityModuleProps {
   onComplete: () => void;
@@ -97,11 +98,13 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
 
   if (!state.dataset || !state.targetVariable) {
     return (
-      <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Please load a dataset and train a model first
-        </CardContent>
-      </Card>
+      <EmptyState
+        icon={Eye}
+        title="Model Not Trained Yet"
+        description="Train a model first to unlock SHAP analysis, feature importance, and what-if exploration for understanding predictions."
+        actionLabel="Go to Model Training"
+        onAction={() => window.dispatchEvent(new CustomEvent('pipeline:navigate', { detail: 5 }))}
+      />
     );
   }
 
