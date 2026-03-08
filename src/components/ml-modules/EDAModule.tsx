@@ -154,7 +154,7 @@ const EDAModule: React.FC<EDAModuleProps> = ({ onComplete }) => {
     );
   };
 
-  const currentStats = selectedColumn ? generateColumnStats(selectedColumn) : null;
+  // Stats computed on-demand via generateColumnStats(selectedColumn)
   const dataTypes = getDataTypes();
   const missingStats = getMissingValuesStats();
   getCorrelationMatrix(); // computed for side effects
