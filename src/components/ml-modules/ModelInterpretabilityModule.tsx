@@ -32,17 +32,10 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   const [whatIfValues, setWhatIfValues] = useState<Record<string, string>>({});
   const [interpretabilityComplete, setInterpretabilityComplete] = useState(false);
 
-  if (!state.dataset || !state.targetVariable) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please complete model training first</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const features = state.dataset.columns.filter((col) => col !== state.targetVariable);
+  const features = useMemo(
+    () => state.dataset?.columns.filter((col) => col !== state.targetVariable) ?? [],
+    [state.dataset, state.targetVariable],
+  );
 
   // Memoize with a stable seed so values don't change on re-render
   const featureImportance: FeatureImportanceEntry[] = useMemo(() => {
