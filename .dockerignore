@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.github
+*.md
+.env*
+.vscode
+.idea
+k8s
+docker-compose.yml
+Dockerfile
+nginx.conf
+.gitignore
+bun.lock
+bun.lockb
