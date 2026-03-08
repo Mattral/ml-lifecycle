@@ -1,14 +1,22 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Settings, CheckCircle, AlertCircle } from 'lucide-react';
-import { useMLPipeline } from './MLPipelineContext';
+import { useMLPipeline, type CleaningLog } from './MLPipelineContext';
 
 interface DataCleaningModuleProps {
   onComplete: () => void;
+}
+
+interface QualityReport {
+  column: string;
+  missing: number;
+  missingPercent: number;
+  outliers: number;
+  isNumeric: boolean;
+  severity: 'high' | 'medium' | 'low';
 }
 
 const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) => {
@@ -17,175 +25,154 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
     dropMissingRows: false,
     imputeNumerical: true,
     imputeCategorical: true,
-    removeOutliers: false
+    removeOutliers: false,
   });
   const [cleaningApplied, setCleaningApplied] = useState(false);
 
-  if (!state.dataset) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-slate-600">Please load a dataset first</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const analyzeDataQuality = useCallback((): QualityReport[] => {
+    if (!state.dataset) return [];
+    const { data, columns } = state.dataset;
 
-  const analyzeDataQuality = () => {
-    const data = state.dataset!.data;
-    const columns = state.dataset!.columns;
-    
-    const qualityReport = columns.map(col => {
-      const values = data.map(row => row[col]);
-      const missing = values.filter(v => v == null || v === '').length;
+    return columns.map((col) => {
+      const values = data.map((row) => row[col]);
+      const missing = values.filter((v) => v == null || v === '').length;
       const missingPercent = (missing / values.length) * 100;
-      
-      const nonMissingValues = values.filter(v => v != null && v !== '');
-      const isNumeric = nonMissingValues.every(v => !isNaN(parseFloat(v)));
-      
+
+      const nonMissing = values.filter((v) => v != null && v !== '');
+      const isNumeric = nonMissing.every((v) => !isNaN(parseFloat(String(v))));
+
       let outliers = 0;
-      if (isNumeric && nonMissingValues.length > 0) {
-        const numValues = nonMissingValues.map(v => parseFloat(v));
-        const q1 = numValues.sort((a, b) => a - b)[Math.floor(numValues.length * 0.25)];
-        const q3 = numValues.sort((a, b) => a - b)[Math.floor(numValues.length * 0.75)];
+      if (isNumeric && nonMissing.length > 0) {
+        const numValues = nonMissing.map((v) => parseFloat(String(v))).sort((a, b) => a - b);
+        const q1 = numValues[Math.floor(numValues.length * 0.25)];
+        const q3 = numValues[Math.floor(numValues.length * 0.75)];
         const iqr = q3 - q1;
-        outliers = numValues.filter(v => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr).length;
+        outliers = numValues.filter((v) => v < q1 - 1.5 * iqr || v > q3 + 1.5 * iqr).length;
       }
-      
+
       return {
         column: col,
         missing,
         missingPercent,
         outliers,
         isNumeric,
-        severity: missingPercent > 20 ? 'high' : missingPercent > 5 ? 'medium' : 'low'
+        severity: missingPercent > 20 ? 'high' : missingPercent > 5 ? 'medium' : 'low',
       };
     });
-    
-    return qualityReport;
-  };
+  }, [state.dataset]);
 
-  const applyCleaning = () => {
-    let cleanedData = [...state.dataset!.data];
-    const logs: any[] = [];
+  const qualityReport = useMemo(() => analyzeDataQuality(), [analyzeDataQuality]);
 
-    // Drop rows with missing values
+  const applyCleaning = useCallback(() => {
+    if (!state.dataset) return;
+    let cleanedData = [...state.dataset.data];
+    const logs: CleaningLog[] = [];
+
     if (cleaningOptions.dropMissingRows) {
       const originalLength = cleanedData.length;
-      cleanedData = cleanedData.filter(row => 
-        Object.values(row).every(val => val != null && val !== '')
+      cleanedData = cleanedData.filter((row) =>
+        Object.values(row).every((val) => val != null && val !== ''),
       );
       const removedRows = originalLength - cleanedData.length;
       if (removedRows > 0) {
-        logs.push({
-          action: 'Drop Missing Rows',
-          details: `Removed ${removedRows} rows with missing values`,
-          timestamp: new Date()
-        });
+        logs.push({ action: 'Drop Missing Rows', details: `Removed ${removedRows} rows with missing values`, timestamp: new Date() });
       }
     }
 
-    // Impute missing values
     if (cleaningOptions.imputeNumerical || cleaningOptions.imputeCategorical) {
-      const qualityReport = analyzeDataQuality();
-      
-      qualityReport.forEach(report => {
-        if (report.missing > 0) {
-          if (report.isNumeric && cleaningOptions.imputeNumerical) {
-            // Impute with mean
-            const values = cleanedData.map(row => row[report.column])
-              .filter(v => v != null && v !== '')
-              .map(v => parseFloat(v));
-            const mean = values.reduce((a, b) => a + b, 0) / values.length;
-            
-            cleanedData = cleanedData.map(row => ({
-              ...row,
-              [report.column]: row[report.column] == null || row[report.column] === '' 
-                ? Math.round(mean * 100) / 100 
-                : row[report.column]
-            }));
-            
-            logs.push({
-              action: 'Impute Numerical',
-              details: `Imputed ${report.missing} missing values in ${report.column} with mean (${Math.round(mean * 100) / 100})`,
-              timestamp: new Date()
-            });
-          } else if (!report.isNumeric && cleaningOptions.imputeCategorical) {
-            // Impute with mode
-            const values = cleanedData.map(row => row[report.column])
-              .filter(v => v != null && v !== '');
-            const mode = values.sort((a, b) =>
-              values.filter(v => v === a).length - values.filter(v => v === b).length
-            ).pop();
-            
-            cleanedData = cleanedData.map(row => ({
-              ...row,
-              [report.column]: row[report.column] == null || row[report.column] === '' 
-                ? mode 
-                : row[report.column]
-            }));
-            
-            logs.push({
-              action: 'Impute Categorical',
-              details: `Imputed ${report.missing} missing values in ${report.column} with mode (${mode})`,
-              timestamp: new Date()
-            });
+      for (const report of qualityReport) {
+        if (report.missing === 0) continue;
+
+        if (report.isNumeric && cleaningOptions.imputeNumerical) {
+          const numericValues = cleanedData
+            .map((row) => row[report.column])
+            .filter((v) => v != null && v !== '')
+            .map((v) => parseFloat(String(v)));
+          const mean = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
+          const roundedMean = Math.round(mean * 100) / 100;
+
+          cleanedData = cleanedData.map((row) => ({
+            ...row,
+            [report.column]: row[report.column] == null || row[report.column] === '' ? roundedMean : row[report.column],
+          }));
+
+          logs.push({ action: 'Impute Numerical', details: `Imputed ${report.missing} missing values in ${report.column} with mean (${roundedMean})`, timestamp: new Date() });
+        } else if (!report.isNumeric && cleaningOptions.imputeCategorical) {
+          const values = cleanedData.map((row) => row[report.column]).filter((v) => v != null && v !== '');
+          const freqMap = new Map<unknown, number>();
+          for (const v of values) {
+            freqMap.set(v, (freqMap.get(v) ?? 0) + 1);
           }
+          let mode: unknown = values[0];
+          let maxCount = 0;
+          for (const [val, count] of freqMap) {
+            if (count > maxCount) {
+              mode = val;
+              maxCount = count;
+            }
+          }
+
+          cleanedData = cleanedData.map((row) => ({
+            ...row,
+            [report.column]: row[report.column] == null || row[report.column] === '' ? mode : row[report.column],
+          }));
+
+          logs.push({ action: 'Impute Categorical', details: `Imputed ${report.missing} missing values in ${report.column} with mode (${String(mode)})`, timestamp: new Date() });
         }
-      });
+      }
     }
 
-    // Remove outliers
     if (cleaningOptions.removeOutliers) {
-      const qualityReport = analyzeDataQuality();
-      qualityReport.forEach(report => {
-        if (report.isNumeric && report.outliers > 0) {
-          const values = cleanedData.map(row => parseFloat(row[report.column]))
-            .filter(v => !isNaN(v));
-          values.sort((a, b) => a - b);
-          const q1 = values[Math.floor(values.length * 0.25)];
-          const q3 = values[Math.floor(values.length * 0.75)];
-          const iqr = q3 - q1;
-          const lowerBound = q1 - 1.5 * iqr;
-          const upperBound = q3 + 1.5 * iqr;
-          
-          const originalLength = cleanedData.length;
-          cleanedData = cleanedData.filter(row => {
-            const val = parseFloat(row[report.column]);
-            return isNaN(val) || (val >= lowerBound && val <= upperBound);
-          });
-          const removedOutliers = originalLength - cleanedData.length;
-          
-          if (removedOutliers > 0) {
-            logs.push({
-              action: 'Remove Outliers',
-              details: `Removed ${removedOutliers} outliers from ${report.column}`,
-              timestamp: new Date()
-            });
-          }
+      for (const report of qualityReport) {
+        if (!report.isNumeric || report.outliers === 0) continue;
+        const numericValues = cleanedData.map((row) => parseFloat(String(row[report.column]))).filter((v) => !isNaN(v)).sort((a, b) => a - b);
+        const q1 = numericValues[Math.floor(numericValues.length * 0.25)];
+        const q3 = numericValues[Math.floor(numericValues.length * 0.75)];
+        const iqr = q3 - q1;
+        const lowerBound = q1 - 1.5 * iqr;
+        const upperBound = q3 + 1.5 * iqr;
+
+        const originalLength = cleanedData.length;
+        cleanedData = cleanedData.filter((row) => {
+          const val = parseFloat(String(row[report.column]));
+          return isNaN(val) || (val >= lowerBound && val <= upperBound);
+        });
+        const removed = originalLength - cleanedData.length;
+        if (removed > 0) {
+          logs.push({ action: 'Remove Outliers', details: `Removed ${removed} outliers from ${report.column}`, timestamp: new Date() });
         }
-      });
+      }
     }
 
     setCleanedData(cleanedData);
-    logs.forEach(log => addCleaningLog(log));
+    logs.forEach((log) => addCleaningLog(log));
     setCleaningApplied(true);
-  };
+  }, [state.dataset, cleaningOptions, qualityReport, setCleanedData, addCleaningLog]);
 
-  const qualityReport = analyzeDataQuality();
-  const workingData = state.cleanedData || state.dataset.data;
+  if (!state.dataset) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-muted-foreground">Please load a dataset first</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const workingData = state.cleanedData ?? state.dataset.data;
+
+  const severityVariant = (severity: string) =>
+    severity === 'high' ? 'destructive' : severity === 'medium' ? 'default' : 'secondary';
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+            <Settings className="w-5 h-5" aria-hidden="true" />
             Data Cleaning & Validation
           </CardTitle>
-          <CardDescription>
-            Identify and fix data quality issues
-          </CardDescription>
+          <CardDescription>Identify and fix data quality issues</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
@@ -193,34 +180,29 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
             <div>
               <h3 className="text-lg font-semibold mb-4">Data Quality Report</h3>
               <div className="space-y-3">
-                {qualityReport.map(report => (
+                {qualityReport.map((report) => (
                   <Card key={report.column} className="p-3">
                     <div className="flex justify-between items-start mb-2">
                       <span className="font-medium">{report.column}</span>
-                      <Badge variant={
-                        report.severity === 'high' ? 'destructive' : 
-                        report.severity === 'medium' ? 'default' : 'secondary'
-                      }>
-                        {report.severity}
-                      </Badge>
+                      <Badge variant={severityVariant(report.severity)}>{report.severity}</Badge>
                     </div>
                     <div className="space-y-1 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Missing:</span>
-                        <span className={report.missing > 0 ? 'text-red-500' : 'text-green-500'}>
+                        <span className="text-muted-foreground">Missing:</span>
+                        <span className={report.missing > 0 ? 'text-destructive' : 'text-success'}>
                           {report.missing} ({report.missingPercent.toFixed(1)}%)
                         </span>
                       </div>
                       {report.isNumeric && (
                         <div className="flex justify-between">
-                          <span className="text-slate-600">Outliers:</span>
-                          <span className={report.outliers > 0 ? 'text-orange-500' : 'text-green-500'}>
+                          <span className="text-muted-foreground">Outliers:</span>
+                          <span className={report.outliers > 0 ? 'text-warning' : 'text-success'}>
                             {report.outliers}
                           </span>
                         </div>
                       )}
                       <div className="flex justify-between">
-                        <span className="text-slate-600">Type:</span>
+                        <span className="text-muted-foreground">Type:</span>
                         <span>{report.isNumeric ? 'Numerical' : 'Categorical'}</span>
                       </div>
                     </div>
@@ -233,71 +215,36 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
             <div>
               <h3 className="text-lg font-semibold mb-4">Cleaning Options</h3>
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div>
-                    <span className="font-medium">Drop Missing Rows</span>
-                    <p className="text-sm text-slate-600">Remove rows with any missing values</p>
+                {[
+                  { key: 'dropMissingRows' as const, label: 'Drop Missing Rows', desc: 'Remove rows with any missing values' },
+                  { key: 'imputeNumerical' as const, label: 'Impute Numerical', desc: 'Fill missing numbers with mean' },
+                  { key: 'imputeCategorical' as const, label: 'Impute Categorical', desc: 'Fill missing categories with mode' },
+                  { key: 'removeOutliers' as const, label: 'Remove Outliers', desc: 'Remove values outside IQR bounds' },
+                ].map((opt) => (
+                  <div key={opt.key} className="flex items-center justify-between p-3 bg-muted rounded">
+                    <div>
+                      <span className="font-medium">{opt.label}</span>
+                      <p className="text-sm text-muted-foreground">{opt.desc}</p>
+                    </div>
+                    <Switch
+                      checked={cleaningOptions[opt.key]}
+                      onCheckedChange={(checked) =>
+                        setCleaningOptions((prev) => ({ ...prev, [opt.key]: checked }))
+                      }
+                      aria-label={opt.label}
+                    />
                   </div>
-                  <Switch
-                    checked={cleaningOptions.dropMissingRows}
-                    onCheckedChange={(checked) => 
-                      setCleaningOptions(prev => ({ ...prev, dropMissingRows: checked }))
-                    }
-                  />
-                </div>
+                ))}
 
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div>
-                    <span className="font-medium">Impute Numerical</span>
-                    <p className="text-sm text-slate-600">Fill missing numbers with mean</p>
-                  </div>
-                  <Switch
-                    checked={cleaningOptions.imputeNumerical}
-                    onCheckedChange={(checked) => 
-                      setCleaningOptions(prev => ({ ...prev, imputeNumerical: checked }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div>
-                    <span className="font-medium">Impute Categorical</span>
-                    <p className="text-sm text-slate-600">Fill missing categories with mode</p>
-                  </div>
-                  <Switch
-                    checked={cleaningOptions.imputeCategorical}
-                    onCheckedChange={(checked) => 
-                      setCleaningOptions(prev => ({ ...prev, imputeCategorical: checked }))
-                    }
-                  />
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div>
-                    <span className="font-medium">Remove Outliers</span>
-                    <p className="text-sm text-slate-600">Remove values outside IQR bounds</p>
-                  </div>
-                  <Switch
-                    checked={cleaningOptions.removeOutliers}
-                    onCheckedChange={(checked) => 
-                      setCleaningOptions(prev => ({ ...prev, removeOutliers: checked }))
-                    }
-                  />
-                </div>
-
-                <Button 
-                  onClick={applyCleaning} 
-                  className="w-full"
-                  disabled={cleaningApplied}
-                >
+                <Button onClick={applyCleaning} className="w-full" disabled={cleaningApplied}>
                   {cleaningApplied ? (
                     <>
-                      <CheckCircle className="w-4 h-4 mr-2" />
+                      <CheckCircle className="w-4 h-4 mr-2" aria-hidden="true" />
                       Cleaning Applied
                     </>
                   ) : (
                     <>
-                      <Settings className="w-4 h-4 mr-2" />
+                      <Settings className="w-4 h-4 mr-2" aria-hidden="true" />
                       Apply Cleaning
                     </>
                   )}
@@ -313,19 +260,19 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
+              <AlertCircle className="w-5 h-5" aria-hidden="true" />
               Cleaning Log
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {state.cleaningLogs.map((log, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-green-50 rounded border border-green-200">
+                <div key={i} className="flex items-center justify-between p-3 bg-success/10 rounded border border-success/20">
                   <div>
-                    <span className="font-medium text-green-800">{log.action}</span>
-                    <p className="text-sm text-green-600">{log.details}</p>
+                    <span className="font-medium text-success">{log.action}</span>
+                    <p className="text-sm text-success/80">{log.details}</p>
                   </div>
-                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <CheckCircle className="w-5 h-5 text-success" aria-hidden="true" />
                 </div>
               ))}
             </div>
@@ -337,36 +284,22 @@ const DataCleaningModule: React.FC<DataCleaningModuleProps> = ({ onComplete }) =
       <Card>
         <CardHeader>
           <CardTitle>Before vs After</CardTitle>
-          <CardDescription>
-            Dataset shape comparison
-          </CardDescription>
+          <CardDescription>Dataset shape comparison</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 bg-red-50 rounded border border-red-200">
-              <h4 className="font-medium text-red-800 mb-2">Before Cleaning</h4>
+            <div className="p-4 bg-destructive/10 rounded border border-destructive/20">
+              <h4 className="font-medium text-destructive mb-2">Before Cleaning</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Rows:</span>
-                  <span>{state.dataset.shape[0]}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Columns:</span>
-                  <span>{state.dataset.shape[1]}</span>
-                </div>
+                <div className="flex justify-between"><span>Rows:</span><span>{state.dataset.shape[0]}</span></div>
+                <div className="flex justify-between"><span>Columns:</span><span>{state.dataset.shape[1]}</span></div>
               </div>
             </div>
-            <div className="p-4 bg-green-50 rounded border border-green-200">
-              <h4 className="font-medium text-green-800 mb-2">After Cleaning</h4>
+            <div className="p-4 bg-success/10 rounded border border-success/20">
+              <h4 className="font-medium text-success mb-2">After Cleaning</h4>
               <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span>Rows:</span>
-                  <span>{workingData.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Columns:</span>
-                  <span>{state.dataset.columns.length}</span>
-                </div>
+                <div className="flex justify-between"><span>Rows:</span><span>{workingData.length}</span></div>
+                <div className="flex justify-between"><span>Columns:</span><span>{state.dataset.columns.length}</span></div>
               </div>
             </div>
           </div>
