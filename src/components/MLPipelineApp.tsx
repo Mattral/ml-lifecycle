@@ -169,7 +169,7 @@ const MLPipelineApp = () => {
           aria-label="Pipeline stages"
         >
           {/* Logo & Progress */}
-          <div className="p-5 border-b border-sidebar-border/60">
+          <div className="p-4 pb-3 border-b border-sidebar-border/60">
             <AnimatePresence mode="wait">
               {!sidebarCollapsed ? (
                 <motion.div
@@ -178,23 +178,23 @@ const MLPipelineApp = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-apple-sm">
-                      <Sparkles className="w-4 h-4 text-primary-foreground" aria-hidden="true" />
+                    <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
+                      <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
                     </div>
                     <div>
-                      <h1 className="text-[15px] font-semibold text-sidebar-foreground tracking-tight">ML Explorer</h1>
-                      <p className="text-[11px] text-sidebar-foreground/40 font-medium">Machine Learning Pipeline</p>
+                      <h1 className="text-[14px] font-semibold text-sidebar-foreground tracking-tight leading-none">ML Explorer</h1>
+                      <p className="text-[10px] text-sidebar-foreground/40 font-medium mt-0.5">Machine Learning Pipeline</p>
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[11px] text-sidebar-foreground/40 mb-2 font-medium">
+                    <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/40 mb-1.5 font-medium">
                       <span>{completedSteps.length} of {ALL_STEPS.length} completed</span>
                       <span className="text-primary font-semibold">{Math.round(overallProgress)}%</span>
                     </div>
-                    <Progress value={overallProgress} className="h-1" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
+                    <Progress value={overallProgress} className="h-[3px]" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
                   </div>
                 </motion.div>
               ) : (
@@ -205,8 +205,8 @@ const MLPipelineApp = () => {
                   exit={{ opacity: 0 }}
                   className="flex justify-center"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-apple-sm">
-                    <Sparkles className="w-4 h-4 text-primary-foreground" aria-hidden="true" />
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
                   </div>
                 </motion.div>
               )}
@@ -214,7 +214,7 @@ const MLPipelineApp = () => {
           </div>
 
           {/* Steps */}
-          <div className="flex-1 overflow-y-auto py-3 px-2" role="list">
+          <div className="flex-1 overflow-y-auto py-2 px-2 scrollbar-sidebar" role="list">
             {PIPELINE_PHASES.map((phase) => {
               const isPhaseHighlighted = highlightedPhase === phase.phase;
               const phaseStepIndices = PHASE_INDICES.get(phase.phase) ?? [];
@@ -222,12 +222,12 @@ const MLPipelineApp = () => {
               return (
                 <div
                   key={phase.phase}
-                  className={`mb-2 transition-all duration-500 rounded-xl ${isPhaseHighlighted ? 'bg-primary/8' : ''}`}
+                  className={`mb-1 transition-all duration-500 rounded-xl ${isPhaseHighlighted ? 'bg-primary/8' : ''}`}
                   role="group"
                   aria-label={`${phase.phase} phase`}
                 >
                   {!sidebarCollapsed && (
-                    <div className="px-3 pt-4 pb-1.5">
+                    <div className="px-3 pt-3 pb-1">
                       <span className={`text-[10px] font-bold uppercase tracking-[0.12em] transition-colors duration-300 ${
                         isPhaseHighlighted ? 'text-primary' : 'text-sidebar-foreground/25'
                       }`}>
@@ -237,7 +237,7 @@ const MLPipelineApp = () => {
                   )}
 
                   {sidebarCollapsed && (
-                    <div className="flex justify-center py-2">
+                    <div className="flex justify-center py-1.5">
                       <div className="w-5 h-px bg-sidebar-border/60 rounded-full" />
                     </div>
                   )}
@@ -256,7 +256,7 @@ const MLPipelineApp = () => {
                             role="listitem"
                             aria-current={isActive ? 'step' : undefined}
                             aria-label={`${step.label}${isComplete ? ' (completed)' : ''}`}
-                            className={`w-full flex items-center gap-3 px-3 py-2 text-left transition-all duration-200 group relative rounded-lg mx-auto ${
+                            className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left transition-all duration-200 group relative rounded-lg mx-auto ${
                               sidebarCollapsed ? 'justify-center' : ''
                             } ${
                               isActive
@@ -267,35 +267,35 @@ const MLPipelineApp = () => {
                             {isActive && (
                               <motion.div
                                 layoutId="activeIndicator"
-                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full"
+                                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r-full"
                                 transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                               />
                             )}
 
-                            <div className={`step-indicator shrink-0 ${
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ease-out ${
                               isComplete
-                                ? 'step-indicator-complete'
+                                ? 'bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]'
                                 : isActive
-                                  ? `${STEP_COLORS[stepIdx] ?? 'bg-primary'} text-white step-indicator-active`
+                                  ? `${STEP_COLORS[stepIdx] ?? 'bg-primary'} text-white ring-2 ring-primary/20`
                                   : 'bg-sidebar-accent/60 text-sidebar-foreground/40'
                             }`}>
                               {isComplete ? (
-                                <CheckCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                                <CheckCircle className="w-3 h-3" aria-hidden="true" />
                               ) : (
-                                <StepIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                                <StepIcon className="w-3 h-3" aria-hidden="true" />
                               )}
                             </div>
 
                             {!sidebarCollapsed && (
                               <div className="min-w-0 flex-1">
-                                <div className="text-[13px] font-medium truncate leading-tight">{step.label}</div>
+                                <div className="text-[12px] font-medium truncate leading-tight">{step.label}</div>
                                 {isActive && (
                                   <motion.p
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
-                                    className="text-[11px] text-sidebar-foreground/35 mt-0.5 line-clamp-2 leading-relaxed"
+                                    className="text-[10px] text-sidebar-foreground/35 mt-0.5 line-clamp-1 leading-snug"
                                   >
-                                    {step.story}
+                                    {step.story.slice(0, 60)}…
                                   </motion.p>
                                 )}
                               </div>
@@ -319,16 +319,16 @@ const MLPipelineApp = () => {
             })}
           </div>
 
-          {/* Collapse Toggle */}
-          <div className="p-3 border-t border-sidebar-border/40">
+          {/* Collapse Toggle — pinned bottom, no overlap */}
+          <div className="shrink-0 p-2 border-t border-sidebar-border/40">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className="w-full text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/40 h-8"
+              className="w-full text-sidebar-foreground/30 hover:text-sidebar-foreground/60 hover:bg-sidebar-accent/40 h-7 text-[11px]"
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {sidebarCollapsed ? <PanelLeft className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
+              {sidebarCollapsed ? <PanelLeft className="w-3.5 h-3.5" /> : <PanelLeftClose className="w-3.5 h-3.5" />}
             </Button>
           </div>
         </motion.aside>
@@ -336,7 +336,7 @@ const MLPipelineApp = () => {
         {/* ─── Main Content ─── */}
         <main className="flex-1 overflow-y-auto" role="main">
           {/* Top Bar — Apple frosted glass */}
-          <header className="sticky top-0 z-10 top-bar-glass px-8 py-4">
+          <header className="sticky top-0 z-10 top-bar-glass px-6 py-3">
             <div className="flex items-center justify-between max-w-7xl mx-auto">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-3">
