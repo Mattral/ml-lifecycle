@@ -33,7 +33,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
   }
 
   const generateEvaluationResults = () => {
-    const taskType = state.model.taskType;
+    const taskType = state.model?.taskType ?? 'classification';
     const testSize = Math.ceil((state.cleanedData || state.dataset!.data).length * 0.2);
 
     if (taskType === 'classification') {

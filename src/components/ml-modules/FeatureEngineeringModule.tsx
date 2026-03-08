@@ -122,7 +122,7 @@ const FeatureEngineeringModule: React.FC<FeatureEngineeringModuleProps> = ({ onC
           transformation,
           details: `Applied ${transformation} to ${column}`
         });
-        addTransformation({ column, transformation, timestamp: new Date() });
+        addTransformation({ type: 'transformation', column, transformation, timestamp: new Date() });
       }
     });
 
