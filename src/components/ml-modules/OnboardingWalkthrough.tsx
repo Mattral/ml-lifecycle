@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { X, ChevronRight, ChevronLeft, Sparkles, Rocket } from 'lucide-react';
+import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/lib/storage';
 
 interface OnboardingStep {
   title: string;
@@ -43,7 +44,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   },
   {
     title: 'You\'re Ready!',
-    description: 'Click through each of the 12 stages to experience the full ML lifecycle. Complete them all to master the pipeline!',
+    description: 'Click through each of the 14 stages to experience the full ML lifecycle. Complete them all to master the pipeline!',
     targetPhase: 'ready',
     icon: <Rocket className="w-5 h-5" />,
   },
@@ -60,7 +61,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    const completed = localStorage.getItem(STORAGE_KEY);
+    const completed = getLocalStorage<boolean>(STORAGE_KEY, false);
     if (!completed) {
       const timer = setTimeout(() => setIsVisible(true), 800);
       return () => clearTimeout(timer);
@@ -76,29 +77,31 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
     }
   }, [currentStep, onHighlightPhase]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (currentStep < ONBOARDING_STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
     } else {
-      handleDismiss();
+      setIsVisible(false);
+      onHighlightPhase?.(null);
+      setLocalStorage(STORAGE_KEY, true);
     }
-  };
+  }, [currentStep, onHighlightPhase]);
 
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (currentStep > 0) setCurrentStep(prev => prev - 1);
-  };
+  }, [currentStep]);
 
-  const handleDismiss = () => {
+  const handleDismiss = useCallback(() => {
     setIsVisible(false);
     onHighlightPhase?.(null);
-    localStorage.setItem(STORAGE_KEY, 'true');
-  };
+    setLocalStorage(STORAGE_KEY, true);
+  }, [onHighlightPhase]);
 
-  const handleRestart = () => {
-    localStorage.removeItem(STORAGE_KEY);
+  const handleRestart = useCallback(() => {
+    removeLocalStorage(STORAGE_KEY);
     setCurrentStep(0);
     setIsVisible(true);
-  };
+  }, []);
 
   if (!isVisible) {
     return (
@@ -106,10 +109,10 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
         variant="ghost"
         size="sm"
         onClick={handleRestart}
-        className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
-        title="Restart tour"
+        className="fixed bottom-4 left-4 z-40 text-muted-foreground hover:text-foreground"
+        aria-label="Restart onboarding tour"
       >
-        <Sparkles className="w-4 h-4" />
+        <Sparkles className="w-4 h-4" aria-hidden="true" />
       </Button>
     );
   }
@@ -127,6 +130,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50"
             onClick={handleDismiss}
+            aria-hidden="true"
           />
 
           {/* Tooltip Card */}
@@ -136,10 +140,13 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw]"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Onboarding step ${currentStep + 1} of ${ONBOARDING_STEPS.length}`}
           >
             <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
               {/* Progress dots */}
-              <div className="flex items-center justify-center gap-1.5 pt-4">
+              <div className="flex items-center justify-center gap-1.5 pt-4" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={ONBOARDING_STEPS.length}>
                 {ONBOARDING_STEPS.map((_, i) => (
                   <motion.div
                     key={i}
@@ -161,7 +168,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
                     transition={{ duration: 0.2 }}
                   >
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
                         {step.icon}
                       </div>
                       <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
@@ -174,19 +181,19 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
               {/* Actions */}
               <div className="flex items-center justify-between px-6 pb-5">
                 <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground">
-                  <X className="w-3 h-3 mr-1" /> Skip
+                  <X className="w-3 h-3 mr-1" aria-hidden="true" /> Skip
                 </Button>
                 <div className="flex items-center gap-2">
                   {currentStep > 0 && (
-                    <Button variant="outline" size="sm" onClick={handlePrev}>
+                    <Button variant="outline" size="sm" onClick={handlePrev} aria-label="Previous step">
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button size="sm" onClick={handleNext}>
+                  <Button size="sm" onClick={handleNext} aria-label={currentStep === ONBOARDING_STEPS.length - 1 ? 'Start exploring' : 'Next step'}>
                     {currentStep === ONBOARDING_STEPS.length - 1 ? (
-                      <>Get Started <Rocket className="w-4 h-4 ml-1" /></>
+                      <>Get Started <Rocket className="w-4 h-4 ml-1" aria-hidden="true" /></>
                     ) : (
-                      <>Next <ChevronRight className="w-4 h-4 ml-1" /></>
+                      <>Next <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" /></>
                     )}
                   </Button>
                 </div>
