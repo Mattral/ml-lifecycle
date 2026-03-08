@@ -169,7 +169,7 @@ const MLPipelineApp = () => {
           aria-label="Pipeline stages"
         >
           {/* Logo & Progress */}
-          <div className="p-5 border-b border-sidebar-border/60">
+          <div className="p-4 pb-3 border-b border-sidebar-border/60">
             <AnimatePresence mode="wait">
               {!sidebarCollapsed ? (
                 <motion.div
@@ -178,23 +178,23 @@ const MLPipelineApp = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.15 }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-apple-sm">
-                      <Sparkles className="w-4 h-4 text-primary-foreground" aria-hidden="true" />
+                    <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
+                      <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
                     </div>
                     <div>
-                      <h1 className="text-[15px] font-semibold text-sidebar-foreground tracking-tight">ML Explorer</h1>
-                      <p className="text-[11px] text-sidebar-foreground/40 font-medium">Machine Learning Pipeline</p>
+                      <h1 className="text-[14px] font-semibold text-sidebar-foreground tracking-tight leading-none">ML Explorer</h1>
+                      <p className="text-[10px] text-sidebar-foreground/40 font-medium mt-0.5">Machine Learning Pipeline</p>
                     </div>
                   </div>
                   <div>
-                    <div className="flex items-center justify-between text-[11px] text-sidebar-foreground/40 mb-2 font-medium">
+                    <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/40 mb-1.5 font-medium">
                       <span>{completedSteps.length} of {ALL_STEPS.length} completed</span>
                       <span className="text-primary font-semibold">{Math.round(overallProgress)}%</span>
                     </div>
-                    <Progress value={overallProgress} className="h-1" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
+                    <Progress value={overallProgress} className="h-[3px]" aria-label={`Pipeline progress: ${Math.round(overallProgress)}%`} />
                   </div>
                 </motion.div>
               ) : (
@@ -205,8 +205,8 @@ const MLPipelineApp = () => {
                   exit={{ opacity: 0 }}
                   className="flex justify-center"
                 >
-                  <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-apple-sm">
-                    <Sparkles className="w-4 h-4 text-primary-foreground" aria-hidden="true" />
+                  <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center shadow-apple-sm">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-foreground" aria-hidden="true" />
                   </div>
                 </motion.div>
               )}
