@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { MemoryRouter } from 'react-router-dom';
-import App from '@/App';
+import Index from '@/pages/Index';
 
 function renderApp() {
   const queryClient = new QueryClient({
@@ -12,11 +11,9 @@ function renderApp() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <TooltipProvider>
-          <App />
-        </TooltipProvider>
-      </MemoryRouter>
+      <TooltipProvider>
+        <Index />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 }

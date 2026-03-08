@@ -79,7 +79,7 @@ describe('MLPipelineContext', () => {
     fireEvent.click(screen.getByTestId('set-target'));
     expect(screen.getByTestId('target')).toHaveTextContent('target');
     // 'target' should be removed from features
-    expect(screen.getByTestId('features')).not.toContain('target');
+    expect(screen.getByTestId('features').textContent).not.toContain('target');
   });
 
   it('sets model', () => {
