@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ml-explorer-pdb
+  namespace: ml-explorer
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: ml-lifecycle-explorer
