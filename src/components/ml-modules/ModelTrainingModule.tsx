@@ -275,7 +275,7 @@ const ModelTrainingModule: React.FC<ModelTrainingModuleProps> = ({ onComplete })
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">Final Loss:</span>
-                        <span>{state.model.finalLoss.toFixed(4)}</span>
+                        <span>{(state.model.finalLoss ?? 0).toFixed(4)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-600">
