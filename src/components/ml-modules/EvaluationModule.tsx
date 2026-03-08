@@ -112,7 +112,7 @@ const EvaluationModule: React.FC<EvaluationModuleProps> = ({ onComplete }) => {
   };
 
   const generateResidualData = () => {
-    return Array.from({ length: 100 }, (_, i) => ({
+    return Array.from({ length: 100 }, () => ({
       fitted: Math.random() * 100,
       residual: (Math.random() - 0.5) * 20,
     }));
