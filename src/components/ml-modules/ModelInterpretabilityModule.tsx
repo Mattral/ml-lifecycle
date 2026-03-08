@@ -98,8 +98,8 @@ const ModelInterpretabilityModule: React.FC<ModelInterpretabilityModuleProps> = 
   if (!state.dataset || !state.targetVariable) {
     return (
       <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Please complete model training first</p>
+        <CardContent className="py-12 text-center text-muted-foreground">
+          Please load a dataset and train a model first
         </CardContent>
       </Card>
     );
