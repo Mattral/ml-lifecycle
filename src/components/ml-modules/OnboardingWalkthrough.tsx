@@ -1,52 +1,52 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { X, ChevronRight, ChevronLeft, Sparkles, Rocket } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sparkles, Rocket } from 'lucide-react';
 import { getLocalStorage, setLocalStorage, removeLocalStorage } from '@/lib/storage';
 
 interface OnboardingStep {
   title: string;
   description: string;
   targetPhase: string;
-  icon: React.ReactNode;
+  emoji: string;
 }
 
 const ONBOARDING_STEPS: OnboardingStep[] = [
   {
-    title: 'Welcome to ML Explorer!',
-    description: 'This interactive tool walks you through a complete machine learning pipeline — from raw data to production deployment. Let\'s take a quick tour!',
+    title: 'Welcome to ML Explorer',
+    description: 'An interactive journey through a complete machine learning pipeline — from raw data to production deployment.',
     targetPhase: 'welcome',
-    icon: <Sparkles className="w-5 h-5" />,
+    emoji: '✨',
   },
   {
-    title: '📊 Data Phase',
-    description: 'Start by ingesting data, exploring its patterns with visualizations, and cleaning it for quality. Every ML project begins here.',
+    title: 'Data Phase',
+    description: 'Ingest data, explore patterns with interactive visualizations, and clean it for quality. Every ML project begins here.',
     targetPhase: 'Data',
-    icon: <span className="text-lg">📊</span>,
+    emoji: '📊',
   },
   {
-    title: '🔧 Build Phase',
-    description: 'Engineer features, train models, and evaluate performance. This is where your data transforms into intelligence.',
+    title: 'Build Phase',
+    description: 'Engineer features, train models with real-time progress, and evaluate performance metrics.',
     targetPhase: 'Build',
-    icon: <span className="text-lg">🔧</span>,
+    emoji: '🔧',
   },
   {
-    title: '🚀 Ship Phase',
-    description: 'Explain predictions, package your model into Docker containers, and deploy it as a REST API on Kubernetes.',
+    title: 'Ship Phase',
+    description: 'Explain model predictions, package into containers, and deploy as scalable REST APIs.',
     targetPhase: 'Ship',
-    icon: <span className="text-lg">🚀</span>,
+    emoji: '🚀',
   },
   {
-    title: '⚙️ Operate Phase',
-    description: 'Monitor for drift, automate retraining with CI/CD, and track everything from a central dashboard. This keeps your model healthy in production.',
+    title: 'Operate Phase',
+    description: 'Monitor for drift, automate retraining with CI/CD, and track everything from a central dashboard.',
     targetPhase: 'Operate',
-    icon: <span className="text-lg">⚙️</span>,
+    emoji: '⚙️',
   },
   {
-    title: 'You\'re Ready!',
-    description: 'Click through each of the 14 stages to experience the full ML lifecycle. Complete them all to master the pipeline!',
+    title: 'You\'re all set',
+    description: 'Navigate through each of the 14 stages to experience the full ML lifecycle. Let\'s build something great.',
     targetPhase: 'ready',
-    icon: <Rocket className="w-5 h-5" />,
+    emoji: '🎯',
   },
 ];
 
@@ -63,7 +63,7 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
   useEffect(() => {
     const completed = getLocalStorage<boolean>(STORAGE_KEY, false);
     if (!completed) {
-      const timer = setTimeout(() => setIsVisible(true), 800);
+      const timer = setTimeout(() => setIsVisible(true), 600);
       return () => clearTimeout(timer);
     }
   }, []);
@@ -107,9 +107,9 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
     return (
       <Button
         variant="ghost"
-        size="sm"
+        size="icon"
         onClick={handleRestart}
-        className="fixed bottom-4 left-4 z-40 text-muted-foreground hover:text-foreground"
+        className="fixed bottom-5 left-5 z-40 w-9 h-9 rounded-full text-muted-foreground/40 hover:text-muted-foreground hover:bg-muted/60"
         aria-label="Restart onboarding tour"
       >
         <Sparkles className="w-4 h-4" aria-hidden="true" />
@@ -118,82 +118,106 @@ const OnboardingWalkthrough: React.FC<OnboardingWalkthroughProps> = ({ onHighlig
   }
 
   const step = ONBOARDING_STEPS[currentStep];
+  const isLast = currentStep === ONBOARDING_STEPS.length - 1;
 
   return (
     <AnimatePresence>
       {isVisible && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — subtle frosted overlay */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50"
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-background/50 backdrop-blur-md z-50"
             onClick={handleDismiss}
             aria-hidden="true"
           />
 
-          {/* Tooltip Card */}
+          {/* Dialog */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] max-w-[90vw]"
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[440px] max-w-[90vw]"
             role="dialog"
             aria-modal="true"
             aria-label={`Onboarding step ${currentStep + 1} of ${ONBOARDING_STEPS.length}`}
           >
-            <div className="bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-              {/* Progress dots */}
-              <div className="flex items-center justify-center gap-1.5 pt-4" role="progressbar" aria-valuenow={currentStep + 1} aria-valuemin={1} aria-valuemax={ONBOARDING_STEPS.length}>
-                {ONBOARDING_STEPS.map((_, i) => (
-                  <motion.div
-                    key={i}
-                    className={`h-1.5 rounded-full transition-all duration-300 ${
-                      i === currentStep ? 'w-6 bg-primary' : i < currentStep ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-border'
-                    }`}
-                  />
-                ))}
+            <div className="bg-card border border-border/60 rounded-3xl shadow-apple-xl overflow-hidden">
+              {/* Progress bar — minimal Apple-style */}
+              <div className="px-8 pt-6">
+                <div className="flex items-center gap-1.5">
+                  {ONBOARDING_STEPS.map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className={`h-[3px] rounded-full transition-all duration-500 ${
+                        i === currentStep
+                          ? 'flex-[2] bg-primary'
+                          : i < currentStep
+                            ? 'flex-1 bg-primary/30'
+                            : 'flex-1 bg-border'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Content */}
-              <div className="p-6">
+              <div className="px-8 pt-7 pb-2">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentStep}
-                    initial={{ opacity: 0, x: 20 }}
+                    initial={{ opacity: 0, x: 16 }}
                     animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.2 }}
+                    exit={{ opacity: 0, x: -16 }}
+                    transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary" aria-hidden="true">
-                        {step.icon}
-                      </div>
-                      <h3 className="text-lg font-bold text-foreground">{step.title}</h3>
+                    <div className="text-4xl mb-4" aria-hidden="true">
+                      {step.emoji}
                     </div>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                    <h3 className="text-xl font-semibold text-foreground tracking-tight mb-2">
+                      {step.title}
+                    </h3>
+                    <p className="text-[14px] text-muted-foreground leading-relaxed">
+                      {step.description}
+                    </p>
                   </motion.div>
                 </AnimatePresence>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between px-6 pb-5">
-                <Button variant="ghost" size="sm" onClick={handleDismiss} className="text-muted-foreground">
-                  <X className="w-3 h-3 mr-1" aria-hidden="true" /> Skip
-                </Button>
+              <div className="flex items-center justify-between px-8 py-6">
+                <button
+                  onClick={handleDismiss}
+                  className="text-[13px] text-muted-foreground/60 hover:text-muted-foreground transition-colors font-medium"
+                >
+                  Skip tour
+                </button>
                 <div className="flex items-center gap-2">
                   {currentStep > 0 && (
-                    <Button variant="outline" size="sm" onClick={handlePrev} aria-label="Previous step">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePrev}
+                      className="w-9 h-9 rounded-full"
+                      aria-label="Previous step"
+                    >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
                   )}
-                  <Button size="sm" onClick={handleNext} aria-label={currentStep === ONBOARDING_STEPS.length - 1 ? 'Start exploring' : 'Next step'}>
-                    {currentStep === ONBOARDING_STEPS.length - 1 ? (
-                      <>Get Started <Rocket className="w-4 h-4 ml-1" aria-hidden="true" /></>
+                  <Button
+                    onClick={handleNext}
+                    size="sm"
+                    className="rounded-full px-5 h-9 font-medium text-[13px] shadow-apple-sm"
+                    aria-label={isLast ? 'Start exploring' : 'Next step'}
+                  >
+                    {isLast ? (
+                      <>Get Started <Rocket className="w-3.5 h-3.5 ml-1.5" aria-hidden="true" /></>
                     ) : (
-                      <>Next <ChevronRight className="w-4 h-4 ml-1" aria-hidden="true" /></>
+                      <>Continue <ChevronRight className="w-3.5 h-3.5 ml-1" aria-hidden="true" /></>
                     )}
                   </Button>
                 </div>
