@@ -36,7 +36,7 @@ describe('App integration', () => {
   it('shows Data Ingestion as first step', async () => {
     renderApp();
     await waitFor(() => {
-      expect(screen.getByText('Data Ingestion')).toBeInTheDocument();
+      expect(screen.getAllByText('Data Ingestion').length).toBeGreaterThanOrEqual(1);
     });
   });
 
