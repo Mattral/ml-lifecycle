@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import {
   Upload, Search, Settings, Database, BarChart, CheckCircle,
   Eye, Zap, Package, Activity, GitBranch, LayoutDashboard,
-  ChevronLeft, ChevronRight, HelpCircle, Sparkles, BookOpen
+  ChevronLeft, ChevronRight, HelpCircle, Sparkles, BookOpen,
+  FlaskConical, Warehouse
 } from 'lucide-react';
 import DataIngestionModule from './ml-modules/DataIngestionModule';
 import EDAModule from './ml-modules/EDAModule';
@@ -20,6 +21,9 @@ import DeploymentSimulationModule from './ml-modules/DeploymentSimulationModule'
 import MonitoringModule from './ml-modules/MonitoringModule';
 import CICDPipelineModule from './ml-modules/CICDPipelineModule';
 import PipelineDashboardModule from './ml-modules/PipelineDashboardModule';
+import ExperimentTrackingModule from './ml-modules/ExperimentTrackingModule';
+import FeatureStoreModule from './ml-modules/FeatureStoreModule';
+import OnboardingWalkthrough from './ml-modules/OnboardingWalkthrough';
 import { MLPipelineProvider } from './ml-modules/MLPipelineContext';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -35,6 +39,7 @@ const PIPELINE_PHASES = [
   {
     phase: 'Build',
     steps: [
+      { id: 'feature-store', label: 'Feature Store', icon: Warehouse, story: 'Centralize, version, and serve features for consistent ML training and inference.', realWorld: 'Feature stores like Feast and Tecton manage features at scale, ensuring consistency between training and serving.' },
       { id: 'engineering', label: 'Features', icon: Database, story: 'Transform raw data into meaningful features that help your model learn patterns effectively.', realWorld: 'Feature stores like Feast and Tecton manage features at scale for production ML systems.' },
       { id: 'training', label: 'Training', icon: BarChart, story: 'Train your model on the prepared data. Watch it learn from patterns and improve over iterations.', realWorld: 'Teams use distributed training with PyTorch/TensorFlow on GPU clusters, tracked by MLflow or W&B.' },
       { id: 'evaluation', label: 'Evaluation', icon: CheckCircle, story: 'Measure how well your model performs. Is it accurate? Fair? Robust? This step answers those questions.', realWorld: 'Beyond accuracy, production models are evaluated for bias, fairness, and robustness.' },
@@ -52,6 +57,7 @@ const PIPELINE_PHASES = [
     phase: 'Operate',
     steps: [
       { id: 'monitoring', label: 'Monitor', icon: Activity, story: 'Watch your model in production. Detect data drift, concept drift, and performance degradation.', realWorld: 'Tools like Evidently AI, WhyLabs, and Prometheus monitor model and data health.' },
+      { id: 'experiments', label: 'Experiments', icon: FlaskConical, story: 'Track experiment runs, compare hyperparameters, and manage model artifacts systematically.', realWorld: 'MLflow, Weights & Biases, and Neptune.ai help teams track and reproduce experiments.' },
       { id: 'cicd', label: 'CI/CD', icon: GitBranch, story: 'Automate testing, validation, and retraining. Build a self-healing ML pipeline.', realWorld: 'GitHub Actions, Jenkins, and Kubeflow Pipelines automate the full ML lifecycle.' },
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, story: 'View the complete pipeline run, export summaries, and manage your ML project holistically.', realWorld: 'ML platforms provide centralized dashboards for experiment tracking and governance.' },
     ]
@@ -65,6 +71,7 @@ const MLPipelineApp = () => {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showStory, setShowStory] = useState<number | null>(null);
+  const [highlightedPhase, setHighlightedPhase] = useState<string | null>(null);
 
   const overallProgress = (completedSteps.length / ALL_STEPS.length) * 100;
 
@@ -80,12 +87,16 @@ const MLPipelineApp = () => {
   const getStepColor = (index: number) => {
     const colorClasses = [
       'bg-step-data', 'bg-step-explore', 'bg-step-clean',
-      'bg-step-engineer', 'bg-step-train', 'bg-step-evaluate',
+      'bg-step-engineer', 'bg-step-engineer', 'bg-step-train', 'bg-step-evaluate',
       'bg-step-interpret', 'bg-step-package', 'bg-step-deploy',
-      'bg-step-monitor', 'bg-step-cicd', 'bg-step-dashboard'
+      'bg-step-monitor', 'bg-step-cicd', 'bg-step-cicd', 'bg-step-dashboard'
     ];
     return colorClasses[index] || 'bg-primary';
   };
+
+  const handleHighlightPhase = useCallback((phase: string | null) => {
+    setHighlightedPhase(phase);
+  }, []);
 
   const renderModule = () => {
     const stepId = ALL_STEPS[currentStep]?.id;
@@ -93,15 +104,17 @@ const MLPipelineApp = () => {
       ingestion: <DataIngestionModule onComplete={() => handleStepComplete(0)} />,
       eda: <EDAModule onComplete={() => handleStepComplete(1)} />,
       cleaning: <DataCleaningModule onComplete={() => handleStepComplete(2)} />,
-      engineering: <FeatureEngineeringModule onComplete={() => handleStepComplete(3)} />,
-      training: <ModelTrainingModule onComplete={() => handleStepComplete(4)} />,
-      evaluation: <EvaluationModule onComplete={() => handleStepComplete(5)} />,
-      interpretability: <ModelInterpretabilityModule onComplete={() => handleStepComplete(6)} />,
-      packaging: <ModelPackagingModule onComplete={() => handleStepComplete(7)} />,
-      deployment: <DeploymentSimulationModule onComplete={() => handleStepComplete(8)} />,
-      monitoring: <MonitoringModule onComplete={() => handleStepComplete(9)} />,
-      cicd: <CICDPipelineModule onComplete={() => handleStepComplete(10)} />,
-      dashboard: <PipelineDashboardModule onComplete={() => handleStepComplete(11)} />,
+      'feature-store': <FeatureStoreModule onComplete={() => handleStepComplete(3)} />,
+      engineering: <FeatureEngineeringModule onComplete={() => handleStepComplete(4)} />,
+      training: <ModelTrainingModule onComplete={() => handleStepComplete(5)} />,
+      evaluation: <EvaluationModule onComplete={() => handleStepComplete(6)} />,
+      interpretability: <ModelInterpretabilityModule onComplete={() => handleStepComplete(7)} />,
+      packaging: <ModelPackagingModule onComplete={() => handleStepComplete(8)} />,
+      deployment: <DeploymentSimulationModule onComplete={() => handleStepComplete(9)} />,
+      monitoring: <MonitoringModule onComplete={() => handleStepComplete(10)} />,
+      experiments: <ExperimentTrackingModule onComplete={() => handleStepComplete(11)} />,
+      cicd: <CICDPipelineModule onComplete={() => handleStepComplete(12)} />,
+      dashboard: <PipelineDashboardModule onComplete={() => handleStepComplete(13)} />,
     };
     return moduleMap[stepId] || null;
   };
@@ -111,6 +124,9 @@ const MLPipelineApp = () => {
   return (
     <MLPipelineProvider>
       <div className="flex h-screen overflow-hidden bg-background">
+        {/* Onboarding */}
+        <OnboardingWalkthrough onHighlightPhase={handleHighlightPhase} />
+
         {/* Sidebar */}
         <motion.aside
           animate={{ width: sidebarCollapsed ? 64 : 300 }}
@@ -144,75 +160,77 @@ const MLPipelineApp = () => {
 
           {/* Steps */}
           <div className="flex-1 overflow-y-auto py-2">
-            {PIPELINE_PHASES.map((phase) => (
-              <div key={phase.phase} className="mb-1">
-                {!sidebarCollapsed && (
-                  <div className="px-4 py-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
-                      {phase.phase}
-                    </span>
-                  </div>
-                )}
-                {phase.steps.map((step) => {
-                  const stepIdx = globalStepIndex++;
-                  const isActive = currentStep === stepIdx;
-                  const isComplete = completedSteps.includes(stepIdx);
-                  const StepIcon = step.icon;
+            {PIPELINE_PHASES.map((phase) => {
+              const isPhaseHighlighted = highlightedPhase === phase.phase;
+              return (
+                <div key={phase.phase} className={`mb-1 transition-all duration-500 ${isPhaseHighlighted ? 'bg-primary/10 rounded-lg mx-1' : ''}`}>
+                  {!sidebarCollapsed && (
+                    <div className="px-4 py-2">
+                      <span className={`text-[10px] font-semibold uppercase tracking-widest transition-colors duration-300 ${isPhaseHighlighted ? 'text-primary' : 'text-sidebar-foreground/40'}`}>
+                        {phase.phase}
+                      </span>
+                    </div>
+                  )}
+                  {phase.steps.map((step) => {
+                    const stepIdx = globalStepIndex++;
+                    const isActive = currentStep === stepIdx;
+                    const isComplete = completedSteps.includes(stepIdx);
+                    const StepIcon = step.icon;
 
-                  return (
-                    <button
-                      key={step.id}
-                      onClick={() => setCurrentStep(stepIdx)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 group relative ${
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-foreground'
-                          : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
-                      }`}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeIndicator"
-                          className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r"
-                        />
-                      )}
-                      <div className={`step-indicator shrink-0 ${
-                        isComplete
-                          ? 'step-indicator-complete'
-                          : isActive
-                          ? `${getStepColor(stepIdx)} text-white step-indicator-active`
-                          : 'bg-sidebar-accent text-sidebar-foreground/50'
-                      }`}>
-                        {isComplete ? (
-                          <CheckCircle className="w-4 h-4" />
-                        ) : (
-                          <StepIcon className="w-4 h-4" />
+                    return (
+                      <button
+                        key={step.id}
+                        onClick={() => setCurrentStep(stepIdx)}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all duration-200 group relative ${
+                          isActive
+                            ? 'bg-sidebar-accent text-sidebar-foreground'
+                            : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50'
+                        }`}
+                      >
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeIndicator"
+                            className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r"
+                          />
                         )}
-                      </div>
-                      {!sidebarCollapsed && (
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium truncate">{step.label}</div>
-                          {isActive && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="text-[11px] text-sidebar-foreground/50 mt-0.5 line-clamp-2"
-                            >
-                              {step.story}
-                            </motion.div>
+                        <div className={`step-indicator shrink-0 ${
+                          isComplete
+                            ? 'step-indicator-complete'
+                            : isActive
+                            ? `${getStepColor(stepIdx)} text-white step-indicator-active`
+                            : 'bg-sidebar-accent text-sidebar-foreground/50'
+                        }`}>
+                          {isComplete ? (
+                            <CheckCircle className="w-4 h-4" />
+                          ) : (
+                            <StepIcon className="w-4 h-4" />
                           )}
                         </div>
-                      )}
-                      {!sidebarCollapsed && isComplete && (
-                        <Badge variant="outline" className="text-[10px] border-success/30 text-success shrink-0">
-                          Done
-                        </Badge>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-            {/* Reset globalStepIndex for next render */}
+                        {!sidebarCollapsed && (
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium truncate">{step.label}</div>
+                            {isActive && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                className="text-[11px] text-sidebar-foreground/50 mt-0.5 line-clamp-2"
+                              >
+                                {step.story}
+                              </motion.div>
+                            )}
+                          </div>
+                        )}
+                        {!sidebarCollapsed && isComplete && (
+                          <Badge variant="outline" className="text-[10px] border-success/30 text-success shrink-0">
+                            Done
+                          </Badge>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })}
             {(() => { globalStepIndex = 0; return null; })()}
           </div>
 
